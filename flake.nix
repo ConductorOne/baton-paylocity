@@ -54,6 +54,7 @@
               with pkgs;
               [
                 golangci-lint
+                gomodifytags
                 jq
 
                 # install the binary of this project
