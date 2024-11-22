@@ -61,33 +61,33 @@ func (c *Client) getBearerToken(ctx context.Context) (string, error) {
 	return bodyResponse.AccessToken, nil
 }
 
-func (c *Client) get(ctx context.Context, endpoint string, target any, options ...uhttp.RequestOption) error {
+func (c *Client) get(ctx context.Context, endpoint string, target any, options ...uhttp.RequestOption) (*v2.RateLimitDescription, error) {
 	parsedURL, err := url.Parse(endpoint)
 	if err != nil {
-		return fmt.Errorf("cannot parse endpoint URL, error: %w", err)
+		return nil, fmt.Errorf("cannot parse endpoint URL, error: %w", err)
 	}
 	request, err := c.httpClient.NewRequest(ctx, http.MethodGet, parsedURL, options...)
 	if err != nil {
-		return fmt.Errorf("cannot create request, error: %w", err)
+		return nil, fmt.Errorf("cannot create request, error: %w", err)
 	}
 
-	var ratelimitData v2.RateLimitDescription
+	var ratelimitData *v2.RateLimitDescription
 	doOptions := []uhttp.DoOption{
-		uhttp.WithRatelimitData(&ratelimitData),
+		uhttp.WithRatelimitData(ratelimitData),
 		uhttp.WithJSONResponse(target),
 	}
 
 	resp, err := c.httpClient.Do(request, doOptions...)
 	if err != nil {
-		return fmt.Errorf("request failed, error: %w", err)
+		return ratelimitData, fmt.Errorf("request failed, error: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusUnauthorized {
-		return ErrUnauthorized
+		return nil, ErrUnauthorized
 	}
 
-	return nil
+	return ratelimitData, nil
 }
 
 // executePreparedRequest calls a function that is in charge of
@@ -123,20 +123,30 @@ func (c *Client) executePreparedRequest(ctx context.Context, f func(string) (boo
 	return fmt.Errorf("request failed due to authorization, check your credentials and try again")
 }
 
-func (c *Client) ListEmployees(ctx context.Context) ([]models.Employee, error) {
+func (c *Client) ListEmployees(ctx context.Context, offset, limit int) (*models.EmployeesResponse, *v2.RateLimitDescription, error) {
 	joinedURL, err := url.JoinPath(c.baseURL, "/coreHr/v1/companies/", c.companyID, "/employees")
 	if err != nil {
-		return nil, fmt.Errorf("cannot make endpoint URL, error: %w", err)
+		return nil, nil, fmt.Errorf("cannot make endpoint URL, error: %w", err)
 	}
 
-	var target models.EmployeesResponse
+	params := map[string]interface{}{
+		"limit": limit,
+	}
+	qurl, err := urlAddQuery(joinedURL, params)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var target *models.EmployeesResponse
+	var rl *v2.RateLimitDescription
 	err = c.executePreparedRequest(ctx, func(t string) (bool, error) {
-		inerr := c.get(ctx, joinedURL, &target, uhttp.WithAcceptJSONHeader(), withBearerToken(t))
+		var inerr error
+		rl, inerr = c.get(ctx, qurl, target, uhttp.WithAcceptJSONHeader(), withBearerToken(t))
 		return shouldRefresh(inerr)
 	})
 	if err != nil {
-		return nil, fmt.Errorf("request failed, error: %w", err)
+		return nil, rl, fmt.Errorf("request failed, error: %w", err)
 	}
 
-	return target.Employees, nil
+	return target, rl, nil
 }

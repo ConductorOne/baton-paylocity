@@ -2,13 +2,17 @@ package connector
 
 import (
 	"context"
+	"fmt"
 
+	"github.com/conductorone/baton-paylocity/pkg/client"
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 	"github.com/conductorone/baton-sdk/pkg/annotations"
 	"github.com/conductorone/baton-sdk/pkg/pagination"
 )
 
-type userBuilder struct{}
+type userBuilder struct {
+	c *client.Client
+}
 
 func (o *userBuilder) ResourceType(ctx context.Context) *v2.ResourceType {
 	return userResourceType
@@ -17,7 +21,22 @@ func (o *userBuilder) ResourceType(ctx context.Context) *v2.ResourceType {
 // List returns all the users from the database as resource objects.
 // Users include a UserTrait because they are the 'shape' of a standard user.
 func (o *userBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId, pToken *pagination.Token) ([]*v2.Resource, string, annotations.Annotations, error) {
-	return nil, "", nil, nil
+	var annot *annotations.Annotations
+	var nextPage string
+
+	offset, limit, err := parsePaginationToken(pToken, 20)
+	if err != nil {
+		return nil, "", nil, fmt.Errorf("cannot parse pagination token, error: %w", err)
+	}
+
+	// FIXME(shackra): change ListEmployees to use the `offset` and `limit` args
+	resp, rl, err := o.c.ListEmployees(ctx, offset, limit)
+	annot = annot.WithRateLimiting(rl)
+	if err != nil {
+		return nil, "", *annot, fmt.Errorf("cannot list employees, error: %w", err)
+	}
+	nextPage = makeNextPage(offset, limit, resp.TotalCount)
+	return nil, nextPage, nil, nil
 }
 
 // Entitlements always returns an empty slice for users.
