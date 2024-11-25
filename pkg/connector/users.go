@@ -36,7 +36,13 @@ func (o *userBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId,
 		return nil, "", *annot, fmt.Errorf("cannot list employees, error: %w", err)
 	}
 	nextPage = makeNextPage(offset, limit, resp.TotalCount)
-	return nil, nextPage, nil, nil
+
+	users, err := employees2users(resp.Employees, parentResourceID)
+	if err != nil {
+		return nil, "", nil, err
+	}
+
+	return users, nextPage, nil, nil
 }
 
 // Entitlements always returns an empty slice for users.
