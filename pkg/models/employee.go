@@ -99,20 +99,20 @@ type PayRate struct {
 }
 
 type EmployeePosition struct {
-	EffectiveDate          time.Time        `json:"effectiveDate"`
-	ChangeReason           string           `json:"changeReason"`
-	CostCenter1            string           `json:"costCenter1"`
-	CostCenter2            string           `json:"costCenter2"`
-	CostCenter3            string           `json:"costCenter3"`
-	EmployeeType           string           `json:"employeeType"`
-	PositionCode           string           `json:"positionCode"`
-	PositionDescription    string           `json:"positionDescription"`
-	CareerLevelCode        string           `json:"careerLevelCode"`
-	CareerLevelDescription string           `json:"careerLevelDescription"`
-	PositionFamilies       []PositionFamily `json:"positionFamilies"`
+	EffectiveDate          time.Time                `json:"effectiveDate"`
+	ChangeReason           string                   `json:"changeReason"`
+	CostCenter1            string                   `json:"costCenter1"`
+	CostCenter2            string                   `json:"costCenter2"`
+	CostCenter3            string                   `json:"costCenter3"`
+	EmployeeType           string                   `json:"employeeType"`
+	PositionCode           string                   `json:"positionCode"`
+	PositionDescription    string                   `json:"positionDescription"`
+	CareerLevelCode        string                   `json:"careerLevelCode"`
+	CareerLevelDescription string                   `json:"careerLevelDescription"`
+	PositionFamilies       []EmployeePositionFamily `json:"positionFamilies"`
 }
 
-type PositionFamily struct {
+type EmployeePositionFamily struct {
 	Code        string `json:"code"`
 	Description string `json:"description"`
 }
