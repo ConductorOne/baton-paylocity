@@ -6,12 +6,19 @@ import (
 	"github.com/conductorone/baton-sdk/pkg/pagination"
 )
 
-func makeNextPage(offset, limit, total int) string {
+func makeNextPageStr(offset, limit, total int) string {
+	nextPage := makeNextPage(offset, limit, total)
+
+	return strconv.Itoa(nextPage)
+}
+
+func makeNextPage(offset, limit, total int) int {
 	n := offset + limit
 	if n >= total {
-		return ""
+		return -1 // sentinel value
 	}
-	return strconv.Itoa(n)
+
+	return n
 }
 
 // parsePaginationToken - takes as pagination token and returns offset and limit in that order.

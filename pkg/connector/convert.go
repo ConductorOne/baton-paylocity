@@ -70,3 +70,33 @@ func employee2user(employee models.Employee, parentResourceID *v2.ResourceId) (*
 
 	return ret, nil
 }
+
+func positionCodes2roles(pcs []models.Position, parentResourceID *v2.ResourceId) ([]*v2.Resource, error) {
+	var roles []*v2.Resource
+
+	for _, pc := range pcs {
+		resource, err := positionCode2role(pc, parentResourceID)
+		if err != nil {
+			return nil, err
+		}
+
+		roles = append(roles, resource)
+	}
+
+	return roles, nil
+}
+
+func positionCode2role(pc models.Position, parentResourceID *v2.ResourceId) (*v2.Resource, error) {
+	profile := make(map[string]interface{})
+
+	traitOptions := []resource.RoleTraitOption{
+		resource.WithRoleProfile(profile),
+	}
+
+	resource, err := resource.NewRoleResource(pc.Title, roleResourceType, pc.Code, traitOptions, resource.WithParentResourceID(parentResourceID))
+	if err != nil {
+		return nil, fmt.Errorf("cannot make role resource from position code «%s» (id «%s»), error: %w", pc.Title, pc.Code, err)
+	}
+
+	return resource, nil
+}

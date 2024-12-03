@@ -9,8 +9,8 @@ type EmployeesResponse struct {
 
 type Employee struct {
 	ID             string           `json:"id"`
-	CompanyID      string           `json:"companyID"`
-	RelationshipID string           `json:"relationshipID"`
+	CompanyID      string           `json:"companyId"`
+	RelationshipID string           `json:"relationshipId"`
 	LastName       string           `json:"lastName"`
 	DisplayName    string           `json:"displayName"`
 	Status         string           `json:"status"`

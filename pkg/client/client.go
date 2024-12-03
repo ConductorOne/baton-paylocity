@@ -13,6 +13,12 @@ import (
 	"github.com/conductorone/baton-sdk/pkg/uhttp"
 )
 
+var ErrUnauthorized = errors.New("Unauthorized")
+
+const (
+	ProductionHost = "https://dc1demogwext.paylocity.com/"
+)
+
 type Client struct {
 	baseURL      string
 	companyID    string
@@ -22,7 +28,27 @@ type Client struct {
 	httpClient   uhttp.BaseHttpClient
 }
 
-var ErrUnauthorized = errors.New("Unauthorized")
+func New(ctx context.Context, host, companyID, clientID, clientSecret string) (*Client, error) {
+	if host == "" {
+		host = ProductionHost
+	}
+
+	c := &Client{
+		baseURL:      host,
+		companyID:    companyID,
+		clientID:     clientID,
+		clientSecret: clientSecret,
+		httpClient:   uhttp.BaseHttpClient{},
+	}
+
+	token, err := c.getBearerToken(ctx)
+	if err != nil {
+		return nil, err
+	}
+	c.bearerToken = token
+
+	return c, nil
+}
 
 // getBearerToken fetch a bearer token from the server.
 func (c *Client) getBearerToken(ctx context.Context) (string, error) {
@@ -121,7 +147,7 @@ func (c *Client) executePreparedRequest(ctx context.Context, f func(string) (boo
 		return nil
 	}
 
-	return fmt.Errorf("request failed due to authorization, check your credentials and try again")
+	return fmt.Errorf("request failed due to authorization issues, check your credentials and try again")
 }
 
 func (c *Client) ListEmployees(ctx context.Context, offset, limit int) (*models.EmployeesResponse, *v2.RateLimitDescription, error) {

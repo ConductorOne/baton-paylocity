@@ -35,7 +35,7 @@ func (o *userBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId,
 	if err != nil {
 		return nil, "", *annot, fmt.Errorf("cannot list employees, error: %w", err)
 	}
-	nextPage = makeNextPage(offset, limit, resp.TotalCount)
+	nextPage = makeNextPageStr(offset, limit, resp.TotalCount)
 
 	users, err := employees2users(resp.Employees, parentResourceID)
 	if err != nil {
@@ -55,6 +55,6 @@ func (o *userBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken 
 	return nil, "", nil, nil
 }
 
-func newUserBuilder() *userBuilder {
-	return &userBuilder{}
+func newUserBuilder(client *client.Client) *userBuilder {
+	return &userBuilder{c: client}
 }
