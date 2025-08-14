@@ -56,7 +56,7 @@ jobs:
 
 
       - name: Build test server
-        run: go build -o test-server ./cmd/test-server
+        run: go build -o test-server ./cmd/test_server
       - name: Start test server
         run: ./test-server &
       - name: Wait for test server to start
