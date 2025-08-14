@@ -2,23 +2,26 @@ package connector
 
 import (
 	"context"
+	"fmt"
 	"io"
 
 	"github.com/conductorone/baton-paylocity/pkg/client"
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 	"github.com/conductorone/baton-sdk/pkg/annotations"
 	"github.com/conductorone/baton-sdk/pkg/connectorbuilder"
+	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
+	"go.uber.org/zap"
 )
 
 type Connector struct {
-	client *client.Client
+	client *client.PaylocityClient
 }
 
 // ResourceSyncers returns a ResourceSyncer for each resource type that should be synced from the upstream service.
 func (d *Connector) ResourceSyncers(ctx context.Context) []connectorbuilder.ResourceSyncer {
 	return []connectorbuilder.ResourceSyncer{
 		newUserBuilder(d.client),
-		newRoleBuilder(d.client),
+		newPositionsBuilder(d.client),
 	}
 }
 
@@ -31,7 +34,7 @@ func (d *Connector) Asset(ctx context.Context, asset *v2.AssetRef) (string, io.R
 // Metadata returns metadata about the connector.
 func (d *Connector) Metadata(ctx context.Context) (*v2.ConnectorMetadata, error) {
 	return &v2.ConnectorMetadata{
-		DisplayName: "Paylocity connector",
+		DisplayName: "Paylocity",
 		Description: "Connector syncing Paylocity employees and position codes",
 	}, nil
 }
@@ -39,14 +42,25 @@ func (d *Connector) Metadata(ctx context.Context) (*v2.ConnectorMetadata, error)
 // Validate is called to ensure that the connector is properly configured. It should exercise any API credentials
 // to be sure that they are valid.
 func (d *Connector) Validate(ctx context.Context) (annotations.Annotations, error) {
+	_, _, _, err := d.client.ListEmployees(ctx, client.PageOptions{Limit: 1})
+	if err != nil {
+		return nil, fmt.Errorf("failed to validate credentials: %w", err)
+	}
+
 	return nil, nil
 }
 
 // New returns a new instance of the connector.
-func New(ctx context.Context, host, companyID, clientID, clientSecret string) (*Connector, error) {
-	paylocityClient, err := client.New(ctx, host, companyID, clientID, clientSecret)
+func New(ctx context.Context, paylocityClientId string, paylocityClientSecret string, paylocityBaseURL string, paylocityCompanyId string) (*Connector, error) {
+	l := ctxzap.Extract(ctx)
+
+	paylocityClient, err := client.New(ctx, paylocityClientId, paylocityClientSecret, paylocityBaseURL, paylocityCompanyId)
 	if err != nil {
+		l.Error("error creating paylocity client", zap.Error(err))
 		return nil, err
 	}
-	return &Connector{client: paylocityClient}, nil
+
+	return &Connector{
+		client: paylocityClient,
+	}, nil
 }

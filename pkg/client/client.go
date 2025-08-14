@@ -2,227 +2,169 @@ package client
 
 import (
 	"context"
-	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strconv"
 
-	"github.com/conductorone/baton-paylocity/pkg/models"
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 	"github.com/conductorone/baton-sdk/pkg/uhttp"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/clientcredentials"
 )
 
-var ErrUnauthorized = errors.New("Unauthorized")
-
-const (
-	ProductionHost = "https://dc1demogwext.paylocity.com/"
-)
-
-type Client struct {
-	baseURL      string
-	companyID    string
-	bearerToken  string
-	clientID     string
-	clientSecret string
-	httpClient   uhttp.BaseHttpClient
+type PaylocityClient struct {
+	httpClient *uhttp.BaseHttpClient
+	baseURL    string
+	companyID  string
 }
 
-func New(ctx context.Context, host, companyID, clientID, clientSecret string) (*Client, error) {
-	if host == "" {
-		host = ProductionHost
+func New(ctx context.Context, clientID, clientSecret, baseURL, companyID string) (*PaylocityClient, error) {
+	cfg := &clientcredentials.Config{
+		ClientID:     clientID,
+		ClientSecret: clientSecret,
+		TokenURL:     fmt.Sprintf("%s/public/security/v1/token", baseURL),
+		AuthStyle:    oauth2.AuthStyleInParams,
 	}
 
-	c := &Client{
-		baseURL:      host,
-		companyID:    companyID,
-		clientID:     clientID,
-		clientSecret: clientSecret,
-		httpClient:   uhttp.BaseHttpClient{},
-	}
+	tokenSource := cfg.TokenSource(ctx)
 
-	token, err := c.getBearerToken(ctx)
+	oauthClient := oauth2.NewClient(ctx, tokenSource)
+	cli, err := uhttp.NewBaseHttpClientWithContext(ctx, oauthClient)
 	if err != nil {
 		return nil, err
 	}
-	c.bearerToken = token
 
-	return c, nil
+	client := &PaylocityClient{
+		httpClient: cli,
+		baseURL:    baseURL,
+		companyID:  companyID,
+	}
+
+	return client, nil
 }
 
-// getBearerToken fetch a bearer token from the server.
-func (c *Client) getBearerToken(ctx context.Context) (string, error) {
-	form := url.Values{}
-	form.Add("client_id", c.clientID)
-	form.Add("client_secret", c.clientSecret)
-	form.Add("grant_type", "client_credentials")
+func (c *PaylocityClient) ListPositionCodes(ctx context.Context, options PageOptions) ([]*Position, string, *v2.RateLimitDescription, error) {
+	var res []*Position
 
-	endpoint, err := url.JoinPath(c.baseURL, "/public/security/v1/token")
+	safeLimit := options.Limit
+	if safeLimit <= 0 {
+		safeLimit = ItemsPerPage
+	}
+
+	baseURL, err := url.Parse(c.baseURL)
 	if err != nil {
-		return "", fmt.Errorf("cannot make endpoint URL, error: %w", err)
+		return nil, "", nil, fmt.Errorf("invalid base URL: %w", err)
 	}
-	endpointURL, err := url.Parse(endpoint)
+	endpoint := baseURL.JoinPath("/apiHub/positionManagement/v1/companies", c.companyID, "positions")
+
+	opts := []ReqOpt{
+		withLimitParam(safeLimit),
+		withOffset(options.PageToken),
+		withTotalCount(),
+	}
+	for _, opt := range opts {
+		opt(endpoint)
+	}
+
+	header, rl, err := c.doRequest(ctx, http.MethodGet, endpoint, &res, nil)
 	if err != nil {
-		return "", fmt.Errorf("cannot parse endpoint URL, error: %w", err)
+		return nil, "", rl, err
 	}
 
-	req, err := c.httpClient.NewRequest(ctx, http.MethodPost, endpointURL, uhttp.WithFormBody(form.Encode()))
-	if err != nil {
-		return "", fmt.Errorf("failed to make request, error: %w", err)
-	}
+	total, _ := strconv.Atoi(header.Get("X-Pcty-Total-Count"))
+	offset, _ := strconv.Atoi(options.PageToken)
+	nextOffsetStr := getNextPageToken(offset, safeLimit, total)
 
-	var bodyResponse models.AuthResponse
-	resp, err := c.httpClient.Do(req,
-		uhttp.WithJSONResponse(&bodyResponse),
-	)
-	if err != nil {
-		return "", fmt.Errorf("request failed to complete, error: %w", err)
-	}
-	defer resp.Body.Close()
-
-	// NOTE(shackra): ensure that the server responds with 403 and not 401
-	if resp.StatusCode == http.StatusForbidden {
-		return "", fmt.Errorf("Server responded with 403 Forbidden, check your credentials are valid and try again")
-	}
-
-	return bodyResponse.AccessToken, nil
+	return res, nextOffsetStr, rl, nil
 }
 
-func (c *Client) get(ctx context.Context, endpoint string, target any, options ...uhttp.RequestOption) (*http.Response, *v2.RateLimitDescription, error) {
-	parsedURL, err := url.Parse(endpoint)
+func (c *PaylocityClient) ListEmployees(ctx context.Context, options PageOptions) ([]*User, string, *v2.RateLimitDescription, error) {
+	var res EmployeesResponse
+
+	baseURL, err := url.Parse(c.baseURL)
 	if err != nil {
-		return nil, nil, fmt.Errorf("cannot parse endpoint URL, error: %w", err)
+		return nil, "", nil, fmt.Errorf("invalid base URL: %w", err)
 	}
-	request, err := c.httpClient.NewRequest(ctx, http.MethodGet, parsedURL, options...)
-	if err != nil {
-		return nil, nil, fmt.Errorf("cannot create request, error: %w", err)
+	endpoint := baseURL.JoinPath("/coreHr/v1/companies", c.companyID, "employees")
+
+	opts := []ReqOpt{
+		withLimitParam(options.Limit),
+		withNextToken(options.PageToken),
+	}
+	for _, opt := range opts {
+		opt(endpoint)
 	}
 
-	var ratelimitData *v2.RateLimitDescription
+	_, rl, err := c.doRequest(ctx, http.MethodGet, endpoint, &res, nil)
+	if err != nil {
+		return nil, "", rl, err
+	}
+
+	return res.Employees, res.NextToken, rl, nil
+}
+
+func (c *PaylocityClient) GetUserById(ctx context.Context, userId string) (*User, *v2.RateLimitDescription, error) {
+	var user User
+
+	baseURL, err := url.Parse(c.baseURL)
+	if err != nil {
+		return nil, nil, fmt.Errorf("invalid base URL: %w", err)
+	}
+
+	endpoint := baseURL.JoinPath("/coreHr/v1/companies", c.companyID, "employees", userId)
+
+	opts := []ReqOpt{
+		withIncludes("info", "position", "status"),
+	}
+	for _, opt := range opts {
+		opt(endpoint)
+	}
+
+	_, rl, err := c.doRequest(ctx, http.MethodGet, endpoint, &user, nil)
+	if err != nil {
+		return nil, rl, err
+	}
+
+	return &user, rl, nil
+}
+
+func (c *PaylocityClient) doRequest(ctx context.Context, method string, url *url.URL, target interface{}, body interface{}) (*http.Header, *v2.RateLimitDescription, error) {
+	requestOptions := []uhttp.RequestOption{
+		uhttp.WithAcceptJSONHeader(),
+	}
+	if body != nil {
+		requestOptions = append(requestOptions, uhttp.WithContentTypeJSONHeader(), uhttp.WithJSONBody(body))
+	}
+
+	request, err := c.httpClient.NewRequest(ctx, method, url, requestOptions...)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	var rateLimitData v2.RateLimitDescription
+	var pError PaylocityErrorResponse
 	doOptions := []uhttp.DoOption{
-		uhttp.WithRatelimitData(ratelimitData),
-		uhttp.WithJSONResponse(target),
+		uhttp.WithRatelimitData(&rateLimitData),
+		uhttp.WithErrorResponse(&pError),
+	}
+	if target != nil {
+		doOptions = append(doOptions, uhttp.WithJSONResponse(target))
 	}
 
-	resp, err := c.httpClient.Do(request, doOptions...)
+	response, err := c.httpClient.Do(request, doOptions...)
 	if err != nil {
-		return nil, ratelimitData, fmt.Errorf("request failed, error: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == http.StatusUnauthorized {
-		return nil, nil, ErrUnauthorized
-	}
-
-	return resp, ratelimitData, nil
-}
-
-// executePreparedRequest calls a function that is in charge of
-// configuring the request and execute it, if for some reason the
-// token needs to be refreshed this function takes care of that and
-// tries a second time.
-func (c *Client) executePreparedRequest(ctx context.Context, f func(string) (bool, error)) error {
-	shouldRefresh, err := f(c.bearerToken)
-	if !shouldRefresh {
-		if err != nil {
-			return err
+		if len(pError) > 0 {
+			return nil, nil, fmt.Errorf("paylocity API error: %s", pError.Message())
 		}
-		return nil
+		return nil, nil, fmt.Errorf("request failed: %w", err)
 	}
 
-	token, err := c.getBearerToken(ctx)
-	if err != nil {
-		return fmt.Errorf("cannot refresh bearer token, error: %w", err)
-	}
+	defer func() {
+		_, _ = io.Copy(io.Discard, response.Body)
+		_ = response.Body.Close()
+	}()
 
-	c.bearerToken = token
-	// call the same function again, this function should use the
-	// new token
-	shouldRefresh, err = f(c.bearerToken)
-
-	if !shouldRefresh {
-		if err != nil {
-			return err
-		}
-		return nil
-	}
-
-	return fmt.Errorf("request failed due to authorization issues, check your credentials and try again")
-}
-
-func (c *Client) ListEmployees(ctx context.Context, offset, limit int) (*models.EmployeesResponse, *v2.RateLimitDescription, error) {
-	joinedURL, err := url.JoinPath(c.baseURL, "/coreHr/v1/companies", c.companyID, "employees")
-	if err != nil {
-		return nil, nil, fmt.Errorf("cannot make endpoint URL, error: %w", err)
-	}
-
-	params := map[string]interface{}{
-		"limit": limit,
-		// TODO(shackra): figure how to ask for the next page
-	}
-	qurl, err := urlAddQuery(joinedURL, params)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	var target *models.EmployeesResponse
-	var rl *v2.RateLimitDescription
-	err = c.executePreparedRequest(ctx, func(t string) (bool, error) {
-		var inerr error
-		var resp *http.Response
-		resp, rl, inerr = c.get(ctx, qurl, target, uhttp.WithAcceptJSONHeader(), withBearerToken(t))
-		if resp != nil {
-			defer resp.Body.Close()
-		}
-		return shouldRefresh(inerr)
-	})
-	if err != nil {
-		return nil, rl, fmt.Errorf("request failed, error: %w", err)
-	}
-
-	return target, rl, nil
-}
-
-func (c *Client) ListPositionCodes(ctx context.Context, offset, limit int) (*models.PositionCodeResponse, *v2.RateLimitDescription, error) {
-	joinedURL, err := url.JoinPath(c.baseURL, "apiHub/positionManagement/v1/companies", c.companyID, "positions")
-	if err != nil {
-		return nil, nil, fmt.Errorf("cannot make endpoint URL, error: %w", err)
-	}
-
-	params := map[string]interface{}{
-		"limit":  limit,
-		"offset": offset,
-	}
-	qurl, err := urlAddQuery(joinedURL, params)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	var target []models.Position
-	var total int
-	var rl *v2.RateLimitDescription
-	err = c.executePreparedRequest(ctx, func(t string) (bool, error) {
-		resp, inrl, inerr := c.get(ctx, qurl, target, uhttp.WithAcceptJSONHeader(), withBearerToken(t))
-		if resp != nil {
-			defer resp.Body.Close()
-			// from the docs: "When includeTotalCount=true,
-			// then the X-Pcty-Total-Count response header
-			// should be added to the response and will
-			// specify the total number of records
-			// available."
-			totalCodes := resp.Header.Get("X-Pcty-Total-Count")
-			n, err := strconv.Atoi(totalCodes)
-			if err != nil {
-				return false, err
-			}
-			total = n
-		}
-		rl = inrl
-		return shouldRefresh(inerr)
-	})
-	if err != nil {
-		return nil, rl, fmt.Errorf("request failed, error: %w", err)
-	}
-
-	return &models.PositionCodeResponse{Total: total, Data: target}, rl, nil
+	return &response.Header, &rateLimitData, nil
 }
