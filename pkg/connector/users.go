@@ -24,16 +24,10 @@ func (o *userBuilder) ResourceType(ctx context.Context) *v2.ResourceType {
 // List returns all the users from the database as resource objects.
 // Users include a UserTrait because they are the 'shape' of a standard user.
 func (o *userBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId, pToken *pagination.Token) ([]*v2.Resource, string, annotations.Annotations, error) {
-	pageToken, err := getPageToken(pToken)
-	if err != nil {
-		return nil, "", nil, err
-	}
+	options := getPageOptions(pToken, client.ItemsPerPage)
 
 	outputAnnotations := annotations.New()
-	positions, nextPageToken, rateLimitDesc, err := o.service.ListEmployees(ctx, client.PageOptions{
-		Limit:     pToken.Size,
-		PageToken: pageToken,
-	})
+	positions, nextPageToken, rateLimitDesc, err := o.service.ListEmployees(ctx, options)
 	if rateLimitDesc != nil {
 		outputAnnotations.WithRateLimiting(rateLimitDesc)
 	}
@@ -103,7 +97,7 @@ func parseUserToResource(user *client.User, parentResourceID *v2.ResourceId) (*v
 	var status v2.UserTrait_Status_Status
 	normalizedStatus := strings.ToLower(user.Status)
 	switch normalizedStatus {
-	case "Active":
+	case "active":
 		status = v2.UserTrait_Status_STATUS_ENABLED
 	default:
 		status = v2.UserTrait_Status_STATUS_DISABLED

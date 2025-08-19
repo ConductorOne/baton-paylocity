@@ -46,6 +46,12 @@ jobs:
       BATON_BASE_URL: http://localhost:8080
       BATON_COMPANY_ID: test-company
       BATON_LOG_LEVEL: debug
+
+      BATON_PAYLOCITY_CLIENT_ID: test-client-id
+      BATON_PAYLOCITY_CLIENT_SECRET: test-client-secret
+      BATON_PAYLOCITY_COMPANY_ID: test-company
+      BATON_PAYLOCITY_BASE_URL: http://localhost:8080
+
     steps:
       - name: Install Go
         uses: actions/setup-go@v5

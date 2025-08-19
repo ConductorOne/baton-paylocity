@@ -27,11 +27,9 @@ func (o *PositionBuilder) ResourceType(_ context.Context) *v2.ResourceType {
 
 func (o *PositionBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId, pToken *pagination.Token) ([]*v2.Resource, string, annotations.Annotations, error) {
 	outputAnnotations := annotations.New()
+	options := getPageOptions(pToken, client.ItemsPerPage)
 
-	positions, nextPage, rateLimitDesc, err := o.service.ListPositionCodes(ctx, client.PageOptions{
-		Limit:     pToken.Size,
-		PageToken: pToken.Token,
-	})
+	positions, nextPage, rateLimitDesc, err := o.service.ListPositionCodes(ctx, options)
 	if rateLimitDesc != nil {
 		outputAnnotations.WithRateLimiting(rateLimitDesc)
 	}
