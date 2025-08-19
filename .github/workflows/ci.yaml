@@ -41,12 +41,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     env:
-      BATON_CLIENT_ID: test-client-id
-      BATON_CLIENT_SECRET: test-client-secret
-      BATON_BASE_URL: http://localhost:8080
-      BATON_COMPANY_ID: test-company
       BATON_LOG_LEVEL: debug
-
       BATON_PAYLOCITY_CLIENT_ID: test-client-id
       BATON_PAYLOCITY_CLIENT_SECRET: test-client-secret
       BATON_PAYLOCITY_COMPANY_ID: test-company
