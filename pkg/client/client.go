@@ -47,28 +47,14 @@ func New(ctx context.Context, clientID, clientSecret, baseURL, companyID string)
 
 func (c *PaylocityClient) ListPositionCodes(ctx context.Context, options PageOptions) ([]*Position, string, *v2.RateLimitDescription, error) {
 	var res []*Position
+	endpointPath := fmt.Sprintf("/apiHub/positionManagement/v1/companies/%s/positions", c.companyID)
 
 	safeLimit := options.Limit
 	if safeLimit <= 0 {
 		safeLimit = ItemsPerPage
 	}
 
-	baseURL, err := url.Parse(c.baseURL)
-	if err != nil {
-		return nil, "", nil, fmt.Errorf("invalid base URL: %w", err)
-	}
-	endpoint := baseURL.JoinPath("/apiHub/positionManagement/v1/companies", c.companyID, "positions")
-
-	opts := []ReqOpt{
-		withLimitParam(safeLimit),
-		withOffset(options.PageToken),
-		withTotalCount(),
-	}
-	for _, opt := range opts {
-		opt(endpoint)
-	}
-
-	header, rl, err := c.doRequest(ctx, http.MethodGet, endpoint, &res, nil)
+	header, rl, err := c.doRequest(ctx, http.MethodGet, endpointPath, &res, nil, withLimitParam(safeLimit), withOffset(options.PageToken), withTotalCount())
 	if err != nil {
 		return nil, "", rl, err
 	}
@@ -82,22 +68,9 @@ func (c *PaylocityClient) ListPositionCodes(ctx context.Context, options PageOpt
 
 func (c *PaylocityClient) ListEmployees(ctx context.Context, options PageOptions) ([]*User, string, *v2.RateLimitDescription, error) {
 	var res EmployeesResponse
+	endpointPath := fmt.Sprintf("/coreHr/v1/companies/%s/employees", c.companyID)
 
-	baseURL, err := url.Parse(c.baseURL)
-	if err != nil {
-		return nil, "", nil, fmt.Errorf("invalid base URL: %w", err)
-	}
-	endpoint := baseURL.JoinPath("/coreHr/v1/companies", c.companyID, "employees")
-
-	opts := []ReqOpt{
-		withLimitParam(options.Limit),
-		withNextToken(options.PageToken),
-	}
-	for _, opt := range opts {
-		opt(endpoint)
-	}
-
-	_, rl, err := c.doRequest(ctx, http.MethodGet, endpoint, &res, nil)
+	_, rl, err := c.doRequest(ctx, http.MethodGet, endpointPath, &res, nil, withLimitParam(options.Limit), withNextToken(options.PageToken))
 	if err != nil {
 		return nil, "", rl, err
 	}
@@ -107,22 +80,9 @@ func (c *PaylocityClient) ListEmployees(ctx context.Context, options PageOptions
 
 func (c *PaylocityClient) GetUserById(ctx context.Context, userId string) (*User, *v2.RateLimitDescription, error) {
 	var user User
+	endpointPath := fmt.Sprintf("/coreHr/v1/companies/%s/employees/%s", c.companyID, userId)
 
-	baseURL, err := url.Parse(c.baseURL)
-	if err != nil {
-		return nil, nil, fmt.Errorf("invalid base URL: %w", err)
-	}
-
-	endpoint := baseURL.JoinPath("/coreHr/v1/companies", c.companyID, "employees", userId)
-
-	opts := []ReqOpt{
-		withIncludes("info", "position", "status"),
-	}
-	for _, opt := range opts {
-		opt(endpoint)
-	}
-
-	_, rl, err := c.doRequest(ctx, http.MethodGet, endpoint, &user, nil)
+	_, rl, err := c.doRequest(ctx, http.MethodGet, endpointPath, &user, nil, withIncludes("info", "position", "status"))
 	if err != nil {
 		return nil, rl, err
 	}
@@ -130,7 +90,17 @@ func (c *PaylocityClient) GetUserById(ctx context.Context, userId string) (*User
 	return &user, rl, nil
 }
 
-func (c *PaylocityClient) doRequest(ctx context.Context, method string, url *url.URL, target interface{}, body interface{}) (*http.Header, *v2.RateLimitDescription, error) {
+func (c *PaylocityClient) doRequest(ctx context.Context, method string, endpointPath string, target interface{}, body interface{}, opts ...ReqOpt) (*http.Header, *v2.RateLimitDescription, error) {
+	baseURL, err := url.Parse(c.baseURL)
+	if err != nil {
+		return nil, nil, fmt.Errorf("invalid base URL: %w", err)
+	}
+	endpointURL := baseURL.JoinPath(endpointPath)
+
+	for _, opt := range opts {
+		opt(endpointURL)
+	}
+
 	requestOptions := []uhttp.RequestOption{
 		uhttp.WithAcceptJSONHeader(),
 	}
@@ -138,7 +108,7 @@ func (c *PaylocityClient) doRequest(ctx context.Context, method string, url *url
 		requestOptions = append(requestOptions, uhttp.WithContentTypeJSONHeader(), uhttp.WithJSONBody(body))
 	}
 
-	request, err := c.httpClient.NewRequest(ctx, method, url, requestOptions...)
+	request, err := c.httpClient.NewRequest(ctx, method, endpointURL, requestOptions...)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -160,7 +130,6 @@ func (c *PaylocityClient) doRequest(ctx context.Context, method string, url *url
 		}
 		return nil, nil, fmt.Errorf("request failed: %w", err)
 	}
-
 	defer func() {
 		_, _ = io.Copy(io.Discard, response.Body)
 		_ = response.Body.Close()

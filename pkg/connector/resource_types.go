@@ -10,8 +10,8 @@ var userResourceType = &v2.ResourceType{
 	Traits:      []v2.ResourceType_Trait{v2.ResourceType_TRAIT_USER},
 }
 
-var roleResourceType = &v2.ResourceType{
-	Id:          "role",
-	DisplayName: "Role",
+var positionResourceType = &v2.ResourceType{
+	Id:          "position",
+	DisplayName: "Position",
 	Traits:      []v2.ResourceType_Trait{v2.ResourceType_TRAIT_ROLE},
 }

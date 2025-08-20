@@ -27,6 +27,7 @@ var (
 		field.WithDisplayName("API Gateway URL"),
 		field.WithDescription("The base API Gateway URL for the Paylocity environment. e.g., Testing: https://dc1demogwext.paylocity.com or Production: https://dc1prodgwext.paylocity.com"),
 		field.WithRequired(true),
+		field.WithDefaultValue("https://dc1prodgwext.paylocity.com"),
 	)
 
 	CompanyIDField = field.StringField(

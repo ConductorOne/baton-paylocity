@@ -27,7 +27,7 @@ jobs:
         run: ./connector config > config_schema.json
 
       - name: Run and save output
-        run: ./connector capabilities > baton_capabilities.json
+        run: ./connector capabilities --paylocity-client-id=clientID --paylocity-client-secret=secret --paylocity-base-url=url --paylocity-company-id=companyID > baton_capabilities.json
 
       - name: Commit changes
         uses: EndBug/add-and-commit@v9

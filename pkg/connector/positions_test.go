@@ -88,7 +88,7 @@ func TestPositionEntitlements(t *testing.T) {
 	t.Run("should return member entitlement for a position", func(t *testing.T) {
 		positionBuilder, _ := newTestPositionBuilder()
 		positionResource := &v2.Resource{
-			Id:          &v2.ResourceId{ResourceType: roleResourceType.Id, Resource: "DEV-01"},
+			Id:          &v2.ResourceId{ResourceType: positionResourceType.Id, Resource: "DEV-01"},
 			DisplayName: "Software Developer",
 		}
 
@@ -96,11 +96,11 @@ func TestPositionEntitlements(t *testing.T) {
 
 		require.NoError(t, err)
 		require.Len(t, entitlements, 1)
-
 		ent := entitlements[0]
 		require.Equal(t, "member", ent.Slug)
 		require.Equal(t, "Software Developer Member", ent.DisplayName)
-		require.Equal(t, roleResourceType.Id, ent.Resource.Id.ResourceType)
+		require.NotNil(t, ent.Resource.Id)
+		require.Equal(t, positionResourceType.Id, ent.Resource.Id.ResourceType)
 		require.Equal(t, "DEV-01", ent.Resource.Id.Resource)
 	})
 }

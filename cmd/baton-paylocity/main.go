@@ -46,10 +46,10 @@ func getConnector(ctx context.Context, config *cfg.Paylocity) (types.ConnectorSe
 		return nil, err
 	}
 
-	paylocityClientIdField := config.GetString(cfg.ClientIDField.FieldName)
-	paylocityClientSecretField := config.GetString(cfg.ClientSecretField.FieldName)
-	paylocityBaseURLField := config.GetString(cfg.BaseURLField.FieldName)
-	paylocityCompanyIdField := config.GetString(cfg.CompanyIDField.FieldName)
+	paylocityClientIdField := config.PaylocityClientId
+	paylocityClientSecretField := config.PaylocityClientSecret
+	paylocityBaseURLField := config.PaylocityBaseUrl
+	paylocityCompanyIdField := config.PaylocityCompanyId
 
 	cb, err := connector.New(ctx, paylocityClientIdField, paylocityClientSecretField, paylocityBaseURLField, paylocityCompanyIdField)
 	if err != nil {

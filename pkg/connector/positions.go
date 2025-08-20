@@ -22,7 +22,7 @@ type PositionBuilder struct {
 }
 
 func (o *PositionBuilder) ResourceType(_ context.Context) *v2.ResourceType {
-	return roleResourceType
+	return positionResourceType
 }
 
 func (o *PositionBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId, pToken *pagination.Token) ([]*v2.Resource, string, annotations.Annotations, error) {
@@ -77,15 +77,15 @@ func parsePositionToResource(position *client.Position, parentResourceID *v2.Res
 		"closed_date":    position.ClosedDate.Format(time.RFC3339),
 	}
 
-	roleTraitOptions := []resource.RoleTraitOption{
+	positionTraitOptions := []resource.RoleTraitOption{
 		resource.WithRoleProfile(profile),
 	}
 
 	positionResource, err := resource.NewRoleResource(
 		position.Title,
-		roleResourceType,
+		positionResourceType,
 		position.Code,
-		roleTraitOptions,
+		positionTraitOptions,
 		resource.WithParentResourceID(parentResourceID),
 	)
 	if err != nil {

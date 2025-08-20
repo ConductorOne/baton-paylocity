@@ -27,7 +27,7 @@ func (o *userBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId,
 	options := getPageOptions(pToken, client.ItemsPerPage)
 
 	outputAnnotations := annotations.New()
-	positions, nextPageToken, rateLimitDesc, err := o.service.ListEmployees(ctx, options)
+	employees, nextPageToken, rateLimitDesc, err := o.service.ListEmployees(ctx, options)
 	if rateLimitDesc != nil {
 		outputAnnotations.WithRateLimiting(rateLimitDesc)
 	}
@@ -36,7 +36,7 @@ func (o *userBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId,
 	}
 
 	var resources []*v2.Resource
-	for _, employee := range positions {
+	for _, employee := range employees {
 		userResource, err := parseUserToResource(employee, parentResourceID)
 		if err != nil {
 			return nil, "", outputAnnotations, err
@@ -52,7 +52,7 @@ func (o *userBuilder) Entitlements(_ context.Context, resource *v2.Resource, _ *
 	return nil, "", nil, nil
 }
 
-// The Grants function for positions (roles) is implemented here on the userBuilder for performance reasons.
+// The Grants function for positions is implemented here on the userBuilder for performance reasons.
 // This allows assigning grants directly while iterating through users, as the Paylocity API
 // already includes the 'positionCode' in the employee list, avoiding the need to iterate
 // over all positions to resolve each user's assignment individually.
@@ -72,7 +72,7 @@ func (o *userBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken 
 	if user.Position.PositionCode != "" {
 		positionResource := &v2.Resource{
 			Id: &v2.ResourceId{
-				ResourceType: roleResourceType.Id,
+				ResourceType: positionResourceType.Id,
 				Resource:     user.Position.PositionCode,
 			},
 		}
