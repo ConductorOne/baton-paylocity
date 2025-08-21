@@ -47,7 +47,7 @@ jobs:
       BATON_PAYLOCITY_COMPANY_ID: test-company
       BATON_PAYLOCITY_BASE_URL: http://localhost:8080
 
-      CONNECTOR_PRINCIPAL: 'user:101'
+      CONNECTOR_PRINCIPAL: '101'
       CONNECTOR_PRINCIPAL_TYPE: 'user'
       CONNECTOR_ENTITLEMENT: 'position:DEV-01:member'
 
