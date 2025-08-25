@@ -1,5 +1,3 @@
-While developing the connector, please fill out this form. This information is needed to write docs and to help other users set up the connector.
-
 ## Connector capabilities
 
 1. What resources does the connector sync?
@@ -7,6 +5,8 @@ While developing the connector, please fill out this form. This information is n
 - Sync Employees (Users) and position codes (Roles).
 
 2. Can the connector provision any resources? If so, which ones?
+
+No
 
 ## Connector credentials
 

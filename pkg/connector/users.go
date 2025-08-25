@@ -14,7 +14,7 @@ import (
 )
 
 type userBuilder struct {
-	service client.ClientService
+	client client.ClientService
 }
 
 func (o *userBuilder) ResourceType(ctx context.Context) *v2.ResourceType {
@@ -27,7 +27,7 @@ func (o *userBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId,
 	options := getPageOptions(pToken, client.ItemsPerPage)
 
 	outputAnnotations := annotations.New()
-	employees, nextPageToken, rateLimitDesc, err := o.service.ListEmployees(ctx, options)
+	employees, nextPageToken, rateLimitDesc, err := o.client.ListEmployees(ctx, options)
 	if rateLimitDesc != nil {
 		outputAnnotations.WithRateLimiting(rateLimitDesc)
 	}
@@ -60,7 +60,7 @@ func (o *userBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken 
 	userId := resource.Id.Resource
 	outputAnnotations := annotations.New()
 
-	user, rateLimitDesc, err := o.service.GetUserById(ctx, userId)
+	user, rateLimitDesc, err := o.client.GetUserById(ctx, userId)
 	if rateLimitDesc != nil {
 		outputAnnotations.WithRateLimiting(rateLimitDesc)
 	}
@@ -126,6 +126,6 @@ func parseUserToResource(user *client.User, parentResourceID *v2.ResourceId) (*v
 
 func newUserBuilder(service client.ClientService) *userBuilder {
 	return &userBuilder{
-		service: service,
+		client: service,
 	}
 }

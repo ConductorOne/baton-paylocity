@@ -18,7 +18,7 @@ const (
 )
 
 type PositionBuilder struct {
-	service client.ClientService
+	client client.ClientService
 }
 
 func (o *PositionBuilder) ResourceType(_ context.Context) *v2.ResourceType {
@@ -29,7 +29,7 @@ func (o *PositionBuilder) List(ctx context.Context, parentResourceID *v2.Resourc
 	outputAnnotations := annotations.New()
 	options := getPageOptions(pToken, client.ItemsPerPage)
 
-	positions, nextPage, rateLimitDesc, err := o.service.ListPositionCodes(ctx, options)
+	positions, nextPage, rateLimitDesc, err := o.client.ListPositionCodes(ctx, options)
 	if rateLimitDesc != nil {
 		outputAnnotations.WithRateLimiting(rateLimitDesc)
 	}
@@ -97,6 +97,6 @@ func parsePositionToResource(position *client.Position, parentResourceID *v2.Res
 
 func newPositionsBuilder(service client.ClientService) *PositionBuilder {
 	return &PositionBuilder{
-		service: service,
+		client: service,
 	}
 }
