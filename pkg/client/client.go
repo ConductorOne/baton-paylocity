@@ -59,8 +59,23 @@ func (c *PaylocityClient) ListPositionCodes(ctx context.Context, options PageOpt
 		return nil, "", rl, err
 	}
 
-	total, _ := strconv.Atoi(header.Get("X-Pcty-Total-Count"))
-	offset, _ := strconv.Atoi(options.PageToken)
+	var total int
+	totalCountStr := header.Get("X-Pcty-Total-Count")
+	if totalCountStr != "" {
+		total, err = strconv.Atoi(totalCountStr)
+		if err != nil {
+			return nil, "", rl, fmt.Errorf("failed to parse X-Pcty-Total-Count header '%s': %w", totalCountStr, err)
+		}
+	}
+
+	var offset int
+	if options.PageToken != "" {
+		offset, err = strconv.Atoi(options.PageToken)
+		if err != nil {
+			return nil, "", rl, fmt.Errorf("failed to parse page token '%s': %w", options.PageToken, err)
+		}
+	}
+
 	nextOffsetStr := getNextPageToken(offset, safeLimit, total)
 
 	return res, nextOffsetStr, rl, nil
