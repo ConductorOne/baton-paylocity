@@ -1,0 +1,103 @@
+{
+  "fields": [
+    {
+      "name": "log-level",
+      "description": "The log level: debug, info, warn, error",
+      "isOps": true,
+      "stringField": {
+        "defaultValue": "info"
+      }
+    },
+    {
+      "name": "log-level-debug-expires-at",
+      "description": "The timestamp indicating when debug-level logging should expire",
+      "isOps": true,
+      "stringField": {}
+    },
+    {
+      "name": "otel-collector-endpoint",
+      "description": "The endpoint of the OpenTelemetry collector to send observability data to (used for both tracing and logging if specific endpoints are not provided)",
+      "isOps": true,
+      "stringField": {}
+    },
+    {
+      "name": "otel-collector-endpoint-tls-cert",
+      "description": "A PEM-encoded certificate to use as a CA for TLS connections to the OpenTelemetry collector",
+      "isOps": true,
+      "stringField": {}
+    },
+    {
+      "name": "otel-collector-endpoint-tls-cert-path",
+      "description": "Path to a file containing a PEM-encoded certificate to use as a CA for TLS connections to the OpenTelemetry collector",
+      "isOps": true,
+      "stringField": {}
+    },
+    {
+      "name": "otel-collector-endpoint-tls-insecure",
+      "description": "Allow insecure connections to the OpenTelemetry collector",
+      "isOps": true,
+      "boolField": {}
+    },
+    {
+      "name": "otel-logging-disabled",
+      "description": "Disable OpenTelemetry logging",
+      "isOps": true,
+      "boolField": {}
+    },
+    {
+      "name": "otel-tracing-disabled",
+      "description": "Disable OpenTelemetry tracing",
+      "isOps": true,
+      "boolField": {}
+    },
+    {
+      "name": "paylocity-base-url",
+      "displayName": "API Gateway URL",
+      "description": "The base API Gateway URL for the Paylocity environment. e.g., Testing: https://dc1demogwext.paylocity.com or Production: https://dc1prodgwext.paylocity.com",
+      "isRequired": true,
+      "stringField": {
+        "defaultValue": "https://dc1prodgwext.paylocity.com",
+        "rules": {
+          "isRequired": true
+        }
+      }
+    },
+    {
+      "name": "paylocity-client-id",
+      "displayName": "Client ID",
+      "description": "Client ID for the Paylocity API",
+      "isRequired": true,
+      "stringField": {
+        "rules": {
+          "isRequired": true
+        }
+      }
+    },
+    {
+      "name": "paylocity-client-secret",
+      "displayName": "Client Secret",
+      "description": "Client Secret for the Paylocity API",
+      "isRequired": true,
+      "isSecret": true,
+      "stringField": {
+        "rules": {
+          "isRequired": true
+        }
+      }
+    },
+    {
+      "name": "paylocity-company-id",
+      "displayName": "Company ID",
+      "description": "The ID of the specific company in Paylocity to fetch data from.",
+      "isRequired": true,
+      "stringField": {
+        "rules": {
+          "isRequired": true
+        }
+      }
+    }
+  ],
+  "displayName": "Paylocity",
+  "helpUrl": "/docs/baton/paylocity",
+  "iconUrl": "/static/app-icons/paylocity.svg"
+}
