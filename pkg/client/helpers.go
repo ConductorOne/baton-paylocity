@@ -1,49 +1,54 @@
 package client
 
 import (
-	"errors"
-	"fmt"
+	"net/url"
 	"strconv"
-
-	liburl "net/url"
-
-	"github.com/conductorone/baton-sdk/pkg/uhttp"
+	"strings"
 )
 
-func withBearerToken(token string) uhttp.RequestOption {
-	return uhttp.WithHeader("Authorization", fmt.Sprintf("Bearer %s", token))
+const ItemsPerPage = 100
+
+type ReqOpt func(reqURL *url.URL)
+
+type PageOptions struct {
+	Limit     int
+	PageToken string
 }
 
-func shouldRefresh(err error) (bool, error) {
-	if err != nil {
-		if errors.Is(err, ErrUnauthorized) {
-			return true, nil
-		}
+func withLimitParam(limit int) ReqOpt {
+	if limit <= 0 {
+		limit = ItemsPerPage
 	}
-	return false, err
+	return withQueryParam("limit", strconv.Itoa(limit))
 }
 
-func urlAddQuery(url string, params map[string]interface{}) (string, error) {
-	p := liburl.Values{}
-	for k, v := range params {
-		switch value := v.(type) {
-		case string:
-			p.Add(k, value)
-		case int:
-			p.Add(k, strconv.Itoa(value))
-		case bool:
-			p.Add(k, strconv.FormatBool(value))
-		default:
-			continue
+func withTotalCount() ReqOpt {
+	return withQueryParam("includeTotalCount", "true")
+}
+
+func withOffset(offset string) ReqOpt {
+	return withQueryParam("offset", offset)
+}
+
+func withIncludes(includes ...string) ReqOpt {
+	return withQueryParam("include", strings.Join(includes, ","))
+}
+
+func withNextToken(token string) ReqOpt { return withQueryParam("nextToken", token) }
+
+func getNextPageToken(offset, limit, total int) string {
+	if offset+limit < total {
+		return strconv.Itoa(offset + limit)
+	}
+	return ""
+}
+
+func withQueryParam(key string, value string) ReqOpt {
+	return func(reqURL *url.URL) {
+		if value != "" {
+			q := reqURL.Query()
+			q.Set(key, value)
+			reqURL.RawQuery = q.Encode()
 		}
 	}
-
-	parsed, err := liburl.Parse(url)
-	if err != nil {
-		return "", fmt.Errorf("cannot parse URL, error: %w", err)
-	}
-
-	parsed.RawQuery = p.Encode()
-
-	return parsed.String(), nil
 }

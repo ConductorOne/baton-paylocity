@@ -1,43 +1,25 @@
 package connector
 
 import (
-	"strconv"
-
+	"github.com/conductorone/baton-paylocity/pkg/client"
 	"github.com/conductorone/baton-sdk/pkg/pagination"
 )
 
-func makeNextPageStr(offset, limit, total int) string {
-	nextPage := makeNextPage(offset, limit, total)
-
-	return strconv.Itoa(nextPage)
-}
-
-func makeNextPage(offset, limit, total int) int {
-	n := offset + limit
-	if n >= total {
-		return -1 // sentinel value
+func getPageOptions(pToken *pagination.Token, defaultLimit int) client.PageOptions {
+	if pToken == nil {
+		return client.PageOptions{
+			Limit:     defaultLimit,
+			PageToken: "",
+		}
 	}
 
-	return n
-}
-
-// parsePaginationToken - takes as pagination token and returns offset and limit in that order.
-func parsePaginationToken(pToken *pagination.Token, defaultLimit int) (int, int, error) {
 	limit := defaultLimit
-	offset := 0
-
-	if pToken != nil {
-		if pToken.Size > 0 {
-			limit = pToken.Size
-		}
-
-		if pToken.Token != "" {
-			parsedOffset, err := strconv.Atoi(pToken.Token)
-			if err != nil {
-				return 0, 0, err
-			}
-			offset = parsedOffset
-		}
+	if pToken.Size > 0 {
+		limit = pToken.Size
 	}
-	return offset, limit, nil
+
+	return client.PageOptions{
+		Limit:     limit,
+		PageToken: pToken.Token,
+	}
 }
