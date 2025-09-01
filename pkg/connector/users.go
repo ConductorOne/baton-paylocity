@@ -14,7 +14,8 @@ import (
 )
 
 type userBuilder struct {
-	client client.ClientService
+	client             client.ClientService
+	validPositionCodes map[string]bool
 }
 
 func (o *userBuilder) ResourceType(ctx context.Context) *v2.ResourceType {
@@ -69,11 +70,12 @@ func (o *userBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken 
 	}
 
 	var grants []*v2.Grant
-	if user.Position.PositionCode != "" {
+	positionCode := user.Position.PositionCode
+	if positionCode != "" && o.validPositionCodes[positionCode] {
 		positionResource := &v2.Resource{
 			Id: &v2.ResourceId{
 				ResourceType: positionResourceType.Id,
-				Resource:     user.Position.PositionCode,
+				Resource:     positionCode,
 			},
 		}
 		grants = append(grants, grant.NewGrant(positionResource, PermissionMember, resource.Id))
@@ -124,8 +126,9 @@ func parseUserToResource(user *client.User, parentResourceID *v2.ResourceId) (*v
 	return userResource, nil
 }
 
-func newUserBuilder(service client.ClientService) *userBuilder {
+func newUserBuilder(client client.ClientService, positionCodes map[string]bool) *userBuilder {
 	return &userBuilder{
-		client: service,
+		client:             client,
+		validPositionCodes: positionCodes,
 	}
 }

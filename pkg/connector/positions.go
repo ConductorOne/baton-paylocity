@@ -18,7 +18,8 @@ const (
 )
 
 type PositionBuilder struct {
-	client client.ClientService
+	client             client.ClientService
+	validPositionCodes map[string]bool
 }
 
 func (o *PositionBuilder) ResourceType(_ context.Context) *v2.ResourceType {
@@ -39,6 +40,7 @@ func (o *PositionBuilder) List(ctx context.Context, parentResourceID *v2.Resourc
 
 	resources := make([]*v2.Resource, 0, len(positions))
 	for _, position := range positions {
+		o.validPositionCodes[position.Code] = true
 		positionResource, err := parsePositionToResource(position, parentResourceID)
 		if err != nil {
 			return nil, "", outputAnnotations, err
@@ -95,8 +97,9 @@ func parsePositionToResource(position *client.Position, parentResourceID *v2.Res
 	return positionResource, nil
 }
 
-func newPositionsBuilder(service client.ClientService) *PositionBuilder {
+func newPositionsBuilder(client client.ClientService, positionCodes map[string]bool) *PositionBuilder {
 	return &PositionBuilder{
-		client: service,
+		client:             client,
+		validPositionCodes: positionCodes,
 	}
 }

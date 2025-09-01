@@ -237,6 +237,11 @@ func (s *server) addTestData() {
 		Info:     InfoPayload{FirstName: "Carlos", LastName: "Lopez", Email: "carlos.lopez@example.com", JobTitle: "Software Developer"},
 		Position: PositionPayload{PositionCode: "DEV-01", EmployeeType: "Regular", Department: "Technology"},
 	}
+	s.employees["105"] = employeeResponse{
+		ID: "105", DisplayName: "User with bad role", Status: "Active",
+		Info:     InfoPayload{FirstName: "Test", LastName: "User", Email: "bad.role@example.com", JobTitle: "QA Test"},
+		Position: PositionPayload{PositionCode: "BAD-ROLE-XYZ"},
+	}
 }
 
 const defaultPageLimit = 100

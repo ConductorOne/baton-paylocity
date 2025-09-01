@@ -16,7 +16,8 @@ import (
 
 func newTestPositionBuilder() (*PositionBuilder, *client.MockService) {
 	mockService := &client.MockService{}
-	builder := newPositionsBuilder(mockService)
+	positionCodes := make(map[string]bool)
+	builder := newPositionsBuilder(mockService, positionCodes)
 	return builder, mockService
 }
 

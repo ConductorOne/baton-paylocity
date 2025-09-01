@@ -17,10 +17,12 @@ import (
 func newTestUserBuilder() (*userBuilder, *client.MockService) {
 	mockService := &client.MockService{}
 
-	builder := newUserBuilder(mockService)
+	positionCodes := make(map[string]bool)
+	builder := newUserBuilder(mockService, positionCodes)
 
 	return builder, mockService
 }
+
 func TestUserList(t *testing.T) {
 	ctx := context.Background()
 
@@ -116,10 +118,10 @@ func TestUserGrants(t *testing.T) {
 			return mockUser, nil, nil
 		}
 
-		// Act
+		userBuilder.validPositionCodes["DEV-01"] = true
+
 		grants, _, _, err := userBuilder.Grants(ctx, userResource, &pagination.Token{})
 
-		// Assert
 		require.NoError(t, err)
 		require.Len(t, grants, 1)
 		require.Equal(t, "DEV-01", grants[0].Entitlement.Resource.Id.Resource)

@@ -14,14 +14,15 @@ import (
 )
 
 type Connector struct {
-	client *client.PaylocityClient
+	client             client.ClientService
+	validPositionCodes map[string]bool
 }
 
 // ResourceSyncers returns a ResourceSyncer for each resource type that should be synced from the upstream service.
 func (d *Connector) ResourceSyncers(ctx context.Context) []connectorbuilder.ResourceSyncer {
 	return []connectorbuilder.ResourceSyncer{
-		newUserBuilder(d.client),
-		newPositionsBuilder(d.client),
+		newUserBuilder(d.client, d.validPositionCodes),
+		newPositionsBuilder(d.client, d.validPositionCodes),
 	}
 }
 
@@ -61,6 +62,7 @@ func New(ctx context.Context, paylocityClientId string, paylocityClientSecret st
 	}
 
 	return &Connector{
-		client: paylocityClient,
+		client:             paylocityClient,
+		validPositionCodes: make(map[string]bool),
 	}, nil
 }
