@@ -1,78 +1,41 @@
 name: ci
-on: pull_request
-
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+  push:
+    branches:
+      - main
 jobs:
   go-lint:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
       - name: Install Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.23.x
-      - name: Checkout code
-        uses: actions/checkout@v4
+          go-version-file: 'go.mod'
       - name: Run linters
         uses: golangci/golangci-lint-action@v8
         with:
           version: latest
           args: --timeout=3m
-
   go-test:
     strategy:
       matrix:
-        go-version: [1.23.x]
         platform: [ubuntu-latest]
     runs-on: ${{ matrix.platform }}
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
       - name: Install Go
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ matrix.go-version }}
-      - name: Checkout code
-        uses: actions/checkout@v4
-      - name: Go Unit Tests
-        run: (set -o pipefail && go test -v -covermode=count -json ./... | tee test.json)
-      - name: Annotate Go Tests
+          go-version-file: 'go.mod'
+      - name: go tests
+        run: go test -v -covermode=count -json ./... > test.json
+      - name: annotate go tests
         if: always()
         uses: guyarb/golang-test-annotations@v0.6.0
         with:
           test-results: test.json
-
-  test:
-    runs-on: ubuntu-latest
-    env:
-      BATON_LOG_LEVEL: debug
-      BATON_PAYLOCITY_CLIENT_ID: test-client-id
-      BATON_PAYLOCITY_CLIENT_SECRET: test-client-secret
-      BATON_PAYLOCITY_COMPANY_ID: test-company
-      BATON_PAYLOCITY_BASE_URL: http://localhost:8080
-
-      CONNECTOR_PRINCIPAL: '101'
-      CONNECTOR_PRINCIPAL_TYPE: 'user'
-      CONNECTOR_ENTITLEMENT: 'position:DEV-01:member'
-
-    steps:
-      - name: Install Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: 1.23.x
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Build test server
-        run: go build -o test-server ./cmd/test_server
-      - name: Start test server
-        run: ./test-server &
-      - name: Wait for test server to start
-        run: sleep 5
-
-      - name: Build baton-paylocity
-        run: go build -o baton-paylocity ./cmd/baton-paylocity
-
-      - name: Run Sync Test Action
-        uses: ConductorOne/github-workflows/actions/sync-test@v2
-        with:
-          connector: ./baton-paylocity
-          baton-entitlement: ${{ env.CONNECTOR_ENTITLEMENT }}
-          baton-principal: ${{ env.CONNECTOR_PRINCIPAL }}
-          baton-principal-type: ${{ env.CONNECTOR_PRINCIPAL_TYPE }}

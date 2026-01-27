@@ -293,18 +293,24 @@ func main() {
 		IdleTimeout:  120 * time.Second,
 	}
 
+	serverErr := make(chan error, 1)
 	go func() {
 		log.Printf("Starting Paylocity test server on port %s", config.port)
 		log.Printf("Server is configured for companyId: %s", companyID)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("Could not listen on %s: %v\n", config.port, err)
+			serverErr <- fmt.Errorf("could not listen on %s: %w", config.port, err)
 		}
 	}()
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
-	log.Println("Shutting down server...")
+	select {
+	case <-quit:
+		log.Println("Shutting down server...")
+	case err := <-serverErr:
+		log.Printf("Server error: %v", err)
+		return
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
