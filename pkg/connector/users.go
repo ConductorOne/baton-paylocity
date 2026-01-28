@@ -8,10 +8,13 @@ import (
 	"github.com/conductorone/baton-paylocity/pkg/client"
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 	"github.com/conductorone/baton-sdk/pkg/annotations"
+	"github.com/conductorone/baton-sdk/pkg/connectorbuilder"
 	"github.com/conductorone/baton-sdk/pkg/pagination"
 	"github.com/conductorone/baton-sdk/pkg/types/grant"
 	"github.com/conductorone/baton-sdk/pkg/types/resource"
 )
+
+var _ connectorbuilder.ResourceSyncer = (*userBuilder)(nil)
 
 type userBuilder struct {
 	client client.ClientService
