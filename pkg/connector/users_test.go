@@ -10,6 +10,7 @@ import (
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 	"github.com/conductorone/baton-sdk/pkg/pagination"
 	"github.com/conductorone/baton-sdk/pkg/test"
+	rs "github.com/conductorone/baton-sdk/pkg/types/resource"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -37,12 +38,12 @@ func TestUserList(t *testing.T) {
 			return []*client.User{mockUser1}, "", nil, nil
 		}
 
-		resources, nextPageToken, annotations, err := userBuilder.List(ctx, nil, &pagination.Token{})
+		resources, opResult, err := userBuilder.List(ctx, nil, rs.SyncOpAttrs{})
 
 		require.NoError(t, err)
 		require.Len(t, resources, 1)
-		require.Empty(t, nextPageToken)
-		test.AssertNoRatelimitAnnotations(t, annotations)
+		require.Empty(t, opResult.NextPageToken)
+		test.AssertNoRatelimitAnnotations(t, opResult.Annotations)
 		require.Equal(t, "Ana Gomez", resources[0].DisplayName)
 	})
 
@@ -63,15 +64,17 @@ func TestUserList(t *testing.T) {
 			return nil, "", nil, fmt.Errorf("unexpected page token")
 		}
 
-		resources1, nextPageToken1, _, err1 := userBuilder.List(ctx, nil, &pagination.Token{})
+		resources1, opResult, err1 := userBuilder.List(ctx, nil, rs.SyncOpAttrs{})
 		require.NoError(t, err1)
 		require.Len(t, resources1, 1)
-		require.Equal(t, "token_pagina_2", nextPageToken1)
+		require.Equal(t, "token_pagina_2", opResult.NextPageToken)
 
-		resources2, nextPageToken2, _, err2 := userBuilder.List(ctx, nil, &pagination.Token{Token: nextPageToken1})
+		resources2, opResult2, err2 := userBuilder.List(ctx, nil, rs.SyncOpAttrs{
+			PageToken: pagination.Token{Token: opResult.NextPageToken},
+		})
 		require.NoError(t, err2)
 		require.Len(t, resources2, 1)
-		require.Empty(t, nextPageToken2)
+		require.Empty(t, opResult2.NextPageToken)
 
 		// Assert
 		require.Equal(t, 2, callCount, "ListEmployees should have been called twice")
@@ -86,13 +89,13 @@ func TestUserList(t *testing.T) {
 			return nil, "", &v2.RateLimitDescription{ResetAt: timestamppb.New(expectedReset)}, fmt.Errorf("rate limited")
 		}
 
-		_, _, annotations, err := userBuilder.List(ctx, nil, &pagination.Token{})
+		_, optResult, err := userBuilder.List(ctx, nil, rs.SyncOpAttrs{})
 
 		require.Error(t, err)
-		require.NotNil(t, annotations)
+		require.NotNil(t, optResult.Annotations)
 
 		rateLimitAnn := &v2.RateLimitDescription{}
-		ok, pickErr := annotations.Pick(rateLimitAnn)
+		ok, pickErr := optResult.Annotations.Pick(rateLimitAnn)
 		require.NoError(t, pickErr)
 		require.True(t, ok, "rate limit annotation should be present")
 		require.Equal(t, expectedReset.Unix(), rateLimitAnn.ResetAt.Seconds)
@@ -117,7 +120,7 @@ func TestUserGrants(t *testing.T) {
 		}
 
 		// Act
-		grants, _, _, err := userBuilder.Grants(ctx, userResource, &pagination.Token{})
+		grants, _, err := userBuilder.Grants(ctx, userResource, rs.SyncOpAttrs{})
 
 		// Assert
 		require.NoError(t, err)
@@ -133,7 +136,7 @@ func TestUserGrants(t *testing.T) {
 			return nil, nil, fmt.Errorf("user not found")
 		}
 
-		_, _, _, err := userBuilder.Grants(ctx, userResource, &pagination.Token{})
+		_, _, err := userBuilder.Grants(ctx, userResource, rs.SyncOpAttrs{})
 
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "failed to get user 101 for grants: user not found")
@@ -147,13 +150,13 @@ func TestUserGrants(t *testing.T) {
 			return nil, &v2.RateLimitDescription{ResetAt: timestamppb.New(expectedReset)}, fmt.Errorf("rate limited")
 		}
 
-		_, _, annotations, err := userBuilder.Grants(ctx, userResource, &pagination.Token{})
+		_, opResult, err := userBuilder.Grants(ctx, userResource, rs.SyncOpAttrs{})
 
 		require.Error(t, err)
-		require.NotNil(t, annotations)
+		require.NotNil(t, opResult.Annotations)
 
 		rateLimitAnn := &v2.RateLimitDescription{}
-		ok, pickErr := annotations.Pick(rateLimitAnn)
+		ok, pickErr := opResult.Annotations.Pick(rateLimitAnn)
 		require.NoError(t, pickErr)
 		require.True(t, ok, "rate limit annotation should be present")
 		require.Equal(t, expectedReset.Unix(), rateLimitAnn.ResetAt.Seconds)

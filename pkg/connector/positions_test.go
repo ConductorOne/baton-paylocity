@@ -10,6 +10,7 @@ import (
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 	"github.com/conductorone/baton-sdk/pkg/pagination"
 	"github.com/conductorone/baton-sdk/pkg/test"
+	rs "github.com/conductorone/baton-sdk/pkg/types/resource"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -30,12 +31,12 @@ func TestPositionList(t *testing.T) {
 			return []*client.Position{mockPosition1}, "", nil, nil
 		}
 
-		resources, nextPageToken, annotations, err := positionBuilder.List(ctx, nil, &pagination.Token{})
+		resources, opResult, err := positionBuilder.List(ctx, nil, rs.SyncOpAttrs{})
 
 		require.NoError(t, err)
 		require.Len(t, resources, 1)
-		require.Empty(t, nextPageToken)
-		test.AssertNoRatelimitAnnotations(t, annotations)
+		require.Empty(t, opResult.NextPageToken)
+		test.AssertNoRatelimitAnnotations(t, opResult.Annotations)
 		require.Equal(t, "Software Developer", resources[0].DisplayName)
 	})
 
@@ -55,15 +56,21 @@ func TestPositionList(t *testing.T) {
 			return nil, "", nil, fmt.Errorf("unexpected page token (offset)")
 		}
 
-		resources1, nextPageToken1, _, err1 := positionBuilder.List(ctx, nil, &pagination.Token{Size: 50})
+		resources1, opResult1, err1 := positionBuilder.List(ctx, nil, rs.SyncOpAttrs{
+			PageToken: pagination.Token{Size: 50},
+		})
 		require.NoError(t, err1)
 		require.Len(t, resources1, 1)
-		require.Equal(t, "50", nextPageToken1)
+		require.Equal(t, "50", opResult1.NextPageToken)
 
-		resources2, nextPageToken2, _, err2 := positionBuilder.List(ctx, nil, &pagination.Token{Token: nextPageToken1, Size: 50})
+		resources2, opResult2, err2 := positionBuilder.List(ctx, nil, rs.SyncOpAttrs{
+			PageToken: pagination.Token{
+				Token: opResult1.NextPageToken,
+				Size:  50},
+		})
 		require.NoError(t, err2)
 		require.Len(t, resources2, 1)
-		require.Empty(t, nextPageToken2)
+		require.Empty(t, opResult2.NextPageToken)
 
 		require.Equal(t, 2, callCount, "ListPositionCodes should have been called twice")
 	})
@@ -75,10 +82,10 @@ func TestPositionList(t *testing.T) {
 			return nil, "", &v2.RateLimitDescription{ResetAt: timestamppb.New(expectedReset)}, fmt.Errorf("rate limited")
 		}
 
-		_, _, annotations, err := positionBuilder.List(ctx, nil, &pagination.Token{})
+		_, opResult, err := positionBuilder.List(ctx, nil, rs.SyncOpAttrs{})
 
 		require.Error(t, err)
-		require.NotNil(t, annotations)
+		require.NotNil(t, opResult.Annotations)
 	})
 }
 
@@ -92,7 +99,7 @@ func TestPositionEntitlements(t *testing.T) {
 			DisplayName: "Software Developer",
 		}
 
-		entitlements, _, _, err := positionBuilder.Entitlements(ctx, positionResource, &pagination.Token{})
+		entitlements, _, err := positionBuilder.Entitlements(ctx, positionResource, rs.SyncOpAttrs{})
 
 		require.NoError(t, err)
 		require.Len(t, entitlements, 1)
