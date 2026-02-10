@@ -55,6 +55,11 @@ func (d *Connector) Validate(ctx context.Context) (annotations.Annotations, erro
 func New(ctx context.Context, conf *config.Paylocity, opts *cli.ConnectorOpts) (connectorbuilder.ConnectorBuilderV2, []connectorbuilder.Opt, error) {
 	l := ctxzap.Extract(ctx)
 
+	if conf == nil {
+		l.Error("missing configuration")
+		return nil, nil, fmt.Errorf("missing configuration")
+	}
+
 	paylocityClient, err := client.New(ctx, conf.PaylocityClientId, conf.PaylocityClientSecret, conf.PaylocityBaseUrl, conf.PaylocityCompanyId)
 	if err != nil {
 		l.Error("error creating paylocity client", zap.Error(err))
