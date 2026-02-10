@@ -57,7 +57,6 @@ type Transport struct {
 	roundTripper    http.RoundTripper
 	logger          *zap.Logger
 	log             bool
-	timeout         time.Duration
 	nextCycle       time.Time
 	mtx             sync.RWMutex
 }

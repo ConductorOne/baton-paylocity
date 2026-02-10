@@ -1,7 +1,6 @@
 GOOS = $(shell go env GOOS)
 GOARCH = $(shell go env GOARCH)
 BUILD_DIR = dist/${GOOS}_${GOARCH}
-
 GENERATED_CONF := pkg/config/conf.gen.go
 
 ifeq ($(GOOS),windows)
@@ -33,8 +32,8 @@ update-deps:
 	go mod tidy -v
 	go mod vendor
 
-.PHONY: add-dep
-add-dep:
+.PHONY: add-deps
+add-deps:
 	go mod tidy -v
 	go mod vendor
 

@@ -309,15 +309,6 @@ var (
 		WithPersistent(true),
 		WithHidden(true),
 		WithExportTarget(ExportTargetOps))
-
-	HttpTimeoutField = IntField("http-timeout-seconds",
-		WithDescription("HTTP client timeout in seconds (max 1800)"),
-		WithDefaultValue(300),
-		WithPersistent(true),
-		WithExportTarget(ExportTargetOps),
-		WithInt(func(r *IntRuler) {
-			r.Gte(1).Lte(1800)
-		}))
 )
 
 func LambdaServerFields() []SchemaField {
@@ -405,8 +396,6 @@ var DefaultFields = []SchemaField{
 	healthCheckField,
 	healthCheckPortField,
 	healthCheckBindAddressField,
-
-	HttpTimeoutField,
 }
 
 func IsFieldAmongDefaultList(f SchemaField) bool {
