@@ -1,6 +1,6 @@
 ![Baton Logo](./docs/images/baton-logo.png)
 
-# `baton-paylocity` [![Go Reference](https://pkg.go.dev/badge/github.com/conductorone/baton-paylocity.svg)](https://pkg.go.dev/github.com/conductorone/baton-paylocity) ![main ci](https://github.com/conductorone/baton-paylocity/actions/workflows/main.yaml/badge.svg)
+# `baton-paylocity` [![Go Reference](https://pkg.go.dev/badge/github.com/conductorone/baton-paylocity.svg)](https://pkg.go.dev/github.com/conductorone/baton-paylocity) ![verify](https://github.com/conductorone/baton-paylocity/actions/workflows/verify.yaml/badge.svg)
 
 `baton-paylocity` is a connector for [Paylocity](https://www.paylocity.com/) built using the [Baton SDK](https://github.com/conductorone/baton-sdk).
 
