@@ -15,14 +15,16 @@
       "stringField": {}
     },
     {
-      "name": "otel-collector-endpoint",
-      "description": "The endpoint of the OpenTelemetry collector to send observability data to (used for both tracing and logging if specific endpoints are not provided)",
+      "name": "session-store-maximum-size",
+      "description": "The maximum size of the local in-memory session store cache in bytes.",
       "isOps": true,
-      "stringField": {}
+      "intField": {
+        "defaultValue": "15728640"
+      }
     },
     {
-      "name": "otel-collector-endpoint-tls-cert",
-      "description": "A PEM-encoded certificate to use as a CA for TLS connections to the OpenTelemetry collector",
+      "name": "otel-collector-endpoint",
+      "description": "The endpoint of the OpenTelemetry collector to send observability data to (used for both tracing and logging if specific endpoints are not provided)",
       "isOps": true,
       "stringField": {}
     },
@@ -33,14 +35,14 @@
       "stringField": {}
     },
     {
-      "name": "otel-collector-endpoint-tls-insecure",
-      "description": "Allow insecure connections to the OpenTelemetry collector",
+      "name": "otel-collector-endpoint-tls-cert",
+      "description": "A PEM-encoded certificate to use as a CA for TLS connections to the OpenTelemetry collector",
       "isOps": true,
-      "boolField": {}
+      "stringField": {}
     },
     {
-      "name": "otel-logging-disabled",
-      "description": "Disable OpenTelemetry logging",
+      "name": "otel-collector-endpoint-tls-insecure",
+      "description": "Allow insecure connections to the OpenTelemetry collector",
       "isOps": true,
       "boolField": {}
     },
@@ -51,14 +53,42 @@
       "boolField": {}
     },
     {
-      "name": "paylocity-base-url",
-      "displayName": "API Gateway URL",
-      "description": "The base API Gateway URL for the Paylocity environment. e.g., Testing: https://dc1demogwext.paylocity.com or Production: https://dc1prodgwext.paylocity.com",
-      "isRequired": true,
+      "name": "otel-logging-disabled",
+      "description": "Disable OpenTelemetry logging",
+      "isOps": true,
+      "boolField": {}
+    },
+    {
+      "name": "health-check",
+      "description": "Enable the HTTP health check endpoint",
+      "isOps": true,
+      "boolField": {}
+    },
+    {
+      "name": "health-check-port",
+      "description": "Port for the HTTP health check endpoint",
+      "isOps": true,
+      "intField": {
+        "defaultValue": "8081"
+      }
+    },
+    {
+      "name": "health-check-bind-address",
+      "description": "Bind address for health check server (127.0.0.1 for localhost-only)",
+      "isOps": true,
       "stringField": {
-        "defaultValue": "https://dc1prodgwext.paylocity.com",
+        "defaultValue": "127.0.0.1"
+      }
+    },
+    {
+      "name": "http-timeout-seconds",
+      "description": "HTTP client timeout in seconds (max 1800)",
+      "isOps": true,
+      "intField": {
+        "defaultValue": "300",
         "rules": {
-          "isRequired": true
+          "lte": "1800",
+          "gte": "1"
         }
       }
     },
@@ -91,6 +121,18 @@
       "description": "The ID of the specific company in Paylocity to fetch data from.",
       "isRequired": true,
       "stringField": {
+        "rules": {
+          "isRequired": true
+        }
+      }
+    },
+    {
+      "name": "paylocity-base-url",
+      "displayName": "API Gateway URL",
+      "description": "The base API Gateway URL for the Paylocity environment. e.g., Testing: https://dc1demogwext.paylocity.com or Production: https://dc1prodgwext.paylocity.com",
+      "isRequired": true,
+      "stringField": {
+        "defaultValue": "https://dc1prodgwext.paylocity.com",
         "rules": {
           "isRequired": true
         }
