@@ -7,12 +7,12 @@ sidebarTitle: Paylocity
 ---
 
 <Warning>
-**This connector is in beta and is not the recommended choice for new integrations today.** Paylocity exposes two separate API systems — the legacy Weblink API and the newer NextGen API — and ConductorOne ships a connector for each:
+**This connector is in beta and is not the recommended choice for new integrations today.** Paylocity exposes two separate API systems — the legacy Weblink API and the newer NextGen API — and C1 ships a connector for each:
 
-- **`baton-paylocity-weblink` (Weblink API) — recommended for new integrations today.** Use this for employee sync and onboarding/offboarding (provisioning). The Weblink API does not return SSN, date of birth, or other sensitive PII fields, which makes it the safer integration target for most customers.
-- **`baton-paylocity` (NextGen API) — this connector.** The NextGen API currently has no field-level filtering, so the employee detail endpoint returns sensitive PII (SSN, DOB, ethnicity, home address) with no way to opt out. Pick this connector only if you specifically need NextGen-only data and have accepted the PII tradeoff.
+- **Paylocity Weblink connector (Weblink API) — recommended for new integrations today.** Use this for employee sync and onboarding/offboarding (provisioning). The Weblink API does not return SSN, date of birth, or other sensitive PII fields, which makes it the safer integration target for most customers.
+- **Paylocity connector (NextGen API) — this connector.** The NextGen API currently has no field-level filtering, so the employee detail endpoint returns sensitive PII (SSN, DOB, ethnicity, home address) with no way to opt out. Pick this connector only if you specifically need NextGen-only data and have accepted the PII tradeoff.
 
-Long-term, NextGen is expected to become the primary path once Paylocity adds field-level filtering, at which point the Weblink connector will be sunset — but for now, **start with `baton-paylocity-weblink`**.
+Long-term, NextGen is expected to become the primary path once Paylocity adds field-level filtering, at which point the Weblink connector will be sunset — but for now, **start with the Paylocity Weblink connector**.
 </Warning>
 
 ## Capabilities
