@@ -82,11 +82,16 @@ func newServer(config *config) *server {
 	}
 }
 
+// maxAuthBodyBytes caps the request body for the test server's auth endpoint
+// so that ParseForm cannot be used to exhaust memory (gosec G120).
+const maxAuthBodyBytes = 1 << 20 // 1 MiB
+
 func (s *server) handleAuth(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Only POST method is allowed", http.StatusMethodNotAllowed)
 		return
 	}
+	r.Body = http.MaxBytesReader(w, r.Body, maxAuthBodyBytes)
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Failed to parse form", http.StatusBadRequest)
 		return
@@ -107,7 +112,7 @@ func (s *server) handleAuth(w http.ResponseWriter, r *http.Request) {
 		"token_type":   "Bearer",
 		"expires_in":   3600,
 	}); err != nil {
-		log.Printf("Error writing json response for %s: %v", r.URL.Path, err)
+		log.Printf("Error writing json response: %v", err)
 	}
 }
 
@@ -125,7 +130,7 @@ func (s *server) handlePositions(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	if offset >= total {
 		if err := json.NewEncoder(w).Encode([]positionResponse{}); err != nil {
-			log.Printf("Error writing empty json response for %s: %v", r.URL.Path, err)
+			log.Printf("Error writing empty json response: %v", err)
 		}
 		return
 	}
@@ -135,7 +140,7 @@ func (s *server) handlePositions(w http.ResponseWriter, r *http.Request) {
 	}
 	paginatedPositions := allPositions[offset:end]
 	if err := json.NewEncoder(w).Encode(paginatedPositions); err != nil {
-		log.Printf("Error writing json response for %s: %v", r.URL.Path, err)
+		log.Printf("Error writing json response: %v", err)
 	}
 }
 
@@ -165,7 +170,7 @@ func (s *server) handleEmployees(w http.ResponseWriter, r *http.Request) {
 		"employees": paginated,
 		"nextToken": nextToken,
 	}); err != nil {
-		log.Printf("Error writing json response for %s: %v", r.URL.Path, err)
+		log.Printf("Error writing json response: %v", err)
 	}
 }
 
@@ -179,7 +184,7 @@ func (s *server) handleSingleEmployee(w http.ResponseWriter, r *http.Request, em
 	}
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(employee); err != nil {
-		log.Printf("Error writing json response for %s: %v", r.URL.Path, err)
+		log.Printf("Error writing json response: %v", err)
 	}
 }
 
