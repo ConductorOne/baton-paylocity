@@ -2,9 +2,18 @@
 
 # `baton-paylocity` [![Go Reference](https://pkg.go.dev/badge/github.com/conductorone/baton-paylocity.svg)](https://pkg.go.dev/github.com/conductorone/baton-paylocity) ![verify](https://github.com/conductorone/baton-paylocity/actions/workflows/verify.yaml/badge.svg)
 
-`baton-paylocity` is a connector for [Paylocity](https://www.paylocity.com/) built using the [Baton SDK](https://github.com/conductorone/baton-sdk).
+`baton-paylocity` is a connector for [Paylocity](https://www.paylocity.com/) built using the [Baton SDK](https://github.com/conductorone/baton-sdk). It targets Paylocity's **NextGen API**.
 
-Check out [Baton](https://github.com/conductorone/baton) to learn more the project in general.
+Check out [Baton](https://github.com/conductorone/baton) to learn more about the project in general.
+
+> **Which Paylocity connector should I use?**
+>
+> Paylocity exposes two separate API systems, and ConductorOne ships a connector for each:
+>
+> - **Paylocity Weblink connector (Weblink API) — recommended for new integrations today.** Use this for employee sync and onboarding/offboarding (provisioning). The Weblink API does not return SSN, date of birth, or other sensitive PII fields, which makes it the safer integration target for most customers.
+> - **Paylocity connector (NextGen API) — this connector, `baton-paylocity`.** The NextGen API currently has no field-level filtering, so the employee detail endpoint returns sensitive PII (SSN, DOB, ethnicity, home address) with no way to opt out. Pick this connector only if you specifically need NextGen-only data and have accepted the PII tradeoff.
+>
+> Long-term, NextGen is expected to become the primary path once Paylocity adds field-level filtering, at which point the Weblink connector will be sunset — but for now, **start with the Paylocity Weblink connector**.
 
 # Prerequisites
 To use this connector, you will need the following information from your Paylocity account:
