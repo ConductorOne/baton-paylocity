@@ -6,8 +6,10 @@ import (
 	"io"
 
 	"github.com/conductorone/baton-paylocity/pkg/client"
+	"github.com/conductorone/baton-paylocity/pkg/config"
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 	"github.com/conductorone/baton-sdk/pkg/annotations"
+	"github.com/conductorone/baton-sdk/pkg/cli"
 	"github.com/conductorone/baton-sdk/pkg/connectorbuilder"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	"go.uber.org/zap"
@@ -18,8 +20,8 @@ type Connector struct {
 }
 
 // ResourceSyncers returns a ResourceSyncer for each resource type that should be synced from the upstream service.
-func (d *Connector) ResourceSyncers(ctx context.Context) []connectorbuilder.ResourceSyncer {
-	return []connectorbuilder.ResourceSyncer{
+func (d *Connector) ResourceSyncers(ctx context.Context) []connectorbuilder.ResourceSyncerV2 {
+	return []connectorbuilder.ResourceSyncerV2{
 		newUserBuilder(d.client),
 		newPositionsBuilder(d.client),
 	}
@@ -50,17 +52,23 @@ func (d *Connector) Validate(ctx context.Context) (annotations.Annotations, erro
 	return nil, nil
 }
 
-// New returns a new instance of the connector.
-func New(ctx context.Context, paylocityClientId string, paylocityClientSecret string, paylocityBaseURL string, paylocityCompanyId string) (*Connector, error) {
+func New(ctx context.Context, conf *config.Paylocity, opts *cli.ConnectorOpts) (connectorbuilder.ConnectorBuilderV2, []connectorbuilder.Opt, error) {
 	l := ctxzap.Extract(ctx)
 
-	paylocityClient, err := client.New(ctx, paylocityClientId, paylocityClientSecret, paylocityBaseURL, paylocityCompanyId)
-	if err != nil {
-		l.Error("error creating paylocity client", zap.Error(err))
-		return nil, err
+	if conf == nil {
+		l.Error("missing configuration")
+		return nil, nil, fmt.Errorf("missing configuration")
 	}
 
-	return &Connector{
+	paylocityClient, err := client.New(ctx, conf.PaylocityClientId, conf.PaylocityClientSecret, conf.PaylocityBaseUrl, conf.PaylocityCompanyId)
+	if err != nil {
+		l.Error("error creating paylocity client", zap.Error(err))
+		return nil, nil, err
+	}
+
+	c := &Connector{
 		client: paylocityClient,
-	}, nil
+	}
+
+	return c, nil, nil
 }

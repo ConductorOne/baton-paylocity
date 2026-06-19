@@ -5,8 +5,8 @@ import (
 	"github.com/conductorone/baton-sdk/pkg/pagination"
 )
 
-func getPageOptions(pToken *pagination.Token, defaultLimit int) client.PageOptions {
-	if pToken == nil {
+func getPageOptions(pToken pagination.Token, defaultLimit int) client.PageOptions {
+	if pToken.Token == "" {
 		return client.PageOptions{
 			Limit:     defaultLimit,
 			PageToken: "",
