@@ -55,40 +55,34 @@ func (o *userBuilder) Entitlements(_ context.Context, resource *v2.Resource, _ *
 	return nil, "", nil, nil
 }
 
-// The Grants function for positions is implemented here on the userBuilder for performance reasons.
-// This allows assigning grants directly while iterating through users, as the Paylocity API
-// already includes the 'positionCode' in the employee list, avoiding the need to iterate
-// over all positions to resolve each user's assignment individually.
-func (o *userBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken *pagination.Token) ([]*v2.Grant, string, annotations.Annotations, error) {
-	userId := resource.Id.Resource
-	outputAnnotations := annotations.New()
-
-	user, rateLimitDesc, err := o.client.GetUserById(ctx, userId)
-	if rateLimitDesc != nil {
-		outputAnnotations.WithRateLimiting(rateLimitDesc)
-	}
+// Position membership is granted here on the userBuilder: the employee list embeds positionCode
+// into each user resource, so we read it back from the synced resource instead of re-fetching.
+func (o *userBuilder) Grants(_ context.Context, userResource *v2.Resource, _ *pagination.Token) ([]*v2.Grant, string, annotations.Annotations, error) {
+	userTrait, err := resource.GetUserTrait(userResource)
 	if err != nil {
-		return nil, "", outputAnnotations, fmt.Errorf("failed to get user %s for grants: %w", userId, err)
+		return nil, "", nil, fmt.Errorf("failed to read user trait for %s: %w", userResource.Id.Resource, err)
 	}
 
-	var grants []*v2.Grant
-	if user.Position.PositionCode != "" {
-		positionResource := &v2.Resource{
-			Id: &v2.ResourceId{
-				ResourceType: positionResourceType.Id,
-				Resource:     user.Position.PositionCode,
-			},
-		}
-		grants = append(grants, grant.NewGrant(positionResource, PermissionMember, resource.Id))
+	positionCode, ok := resource.GetProfileStringValue(userTrait.GetProfile(), "position_code")
+	if !ok || positionCode == "" {
+		return nil, "", nil, nil
 	}
 
-	return grants, "", outputAnnotations, nil
+	positionResource := &v2.Resource{
+		Id: &v2.ResourceId{
+			ResourceType: positionResourceType.Id,
+			Resource:     positionCode,
+		},
+	}
+
+	grants := []*v2.Grant{grant.NewGrant(positionResource, PermissionMember, userResource.Id)}
+	return grants, "", nil, nil
 }
 
 func parseUserToResource(user *client.User, parentResourceID *v2.ResourceId) (*v2.Resource, error) {
 	profile := map[string]interface{}{
 		"user_id":       user.ID,
-		"display_name":  user.DisplayName,
+		"display_name":  user.Info.DisplayName,
 		"first_name":    user.Info.FirstName,
 		"last_name":     user.Info.LastName,
 		"job_title":     user.Info.JobTitle,
@@ -98,7 +92,7 @@ func parseUserToResource(user *client.User, parentResourceID *v2.ResourceId) (*v
 	}
 
 	var status v2.UserTrait_Status_Status
-	normalizedStatus := strings.ToLower(user.Status)
+	normalizedStatus := strings.ToLower(user.CurrentStatus.Status)
 	switch normalizedStatus {
 	case "active":
 		status = v2.UserTrait_Status_STATUS_ENABLED
@@ -114,7 +108,7 @@ func parseUserToResource(user *client.User, parentResourceID *v2.ResourceId) (*v
 	}
 
 	userResource, err := resource.NewUserResource(
-		user.DisplayName,
+		user.Info.DisplayName,
 		userResourceType,
 		user.ID,
 		userTraitOptions,

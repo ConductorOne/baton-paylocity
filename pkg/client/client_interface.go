@@ -9,5 +9,4 @@ import (
 type ClientService interface {
 	ListEmployees(ctx context.Context, options PageOptions) ([]*User, string, *v2.RateLimitDescription, error)
 	ListPositionCodes(ctx context.Context, options PageOptions) ([]*Position, string, *v2.RateLimitDescription, error)
-	GetUserById(ctx context.Context, userId string) (*User, *v2.RateLimitDescription, error)
 }

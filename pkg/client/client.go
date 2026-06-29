@@ -85,24 +85,18 @@ func (c *PaylocityClient) ListEmployees(ctx context.Context, options PageOptions
 	var res EmployeesResponse
 	endpointPath := fmt.Sprintf("/coreHr/v1/companies/%s/employees", c.companyID)
 
-	_, rl, err := c.doRequest(ctx, http.MethodGet, endpointPath, &res, nil, withLimitParam(options.Limit), withNextToken(options.PageToken))
+	limit := options.Limit
+	if limit <= 0 || limit > EmployeesMaxPageSize {
+		limit = EmployeesMaxPageSize
+	}
+
+	_, rl, err := c.doRequest(ctx, http.MethodGet, endpointPath, &res, nil,
+		withLimitParam(limit), withNextToken(options.PageToken), withIncludes("info", "position", "status"))
 	if err != nil {
 		return nil, "", rl, err
 	}
 
 	return res.Employees, res.NextToken, rl, nil
-}
-
-func (c *PaylocityClient) GetUserById(ctx context.Context, userId string) (*User, *v2.RateLimitDescription, error) {
-	var user User
-	endpointPath := fmt.Sprintf("/coreHr/v1/companies/%s/employees/%s", c.companyID, userId)
-
-	_, rl, err := c.doRequest(ctx, http.MethodGet, endpointPath, &user, nil, withIncludes("info", "position", "status"))
-	if err != nil {
-		return nil, rl, err
-	}
-
-	return &user, rl, nil
 }
 
 func (c *PaylocityClient) doRequest(ctx context.Context, method string, endpointPath string, target interface{}, body interface{}, opts ...ReqOpt) (*http.Header, *v2.RateLimitDescription, error) {
