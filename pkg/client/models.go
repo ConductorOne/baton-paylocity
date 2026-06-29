@@ -12,18 +12,23 @@ type EmployeesResponse struct {
 }
 
 type User struct {
-	ID          string          `json:"id"`
-	DisplayName string          `json:"displayName"`
-	Status      string          `json:"statusType"`
-	Info        InfoPayload     `json:"info"`
-	Position    PositionPayload `json:"position"`
+	ID            string          `json:"id"`
+	Info          InfoPayload     `json:"info"`
+	CurrentStatus StatusPayload   `json:"currentStatus"`
+	Position      PositionPayload `json:"position"`
 }
 
 type InfoPayload struct {
-	FirstName string `json:"firstName"`
-	LastName  string `json:"lastName"`
-	Email     string `json:"personalEmail"`
-	JobTitle  string `json:"jobTitle"`
+	FirstName   string `json:"firstName"`
+	LastName    string `json:"lastName"`
+	DisplayName string `json:"displayName"`
+	Email       string `json:"personalEmail"`
+	JobTitle    string `json:"jobTitle"`
+}
+
+type StatusPayload struct {
+	Status     string `json:"status"`
+	StatusType string `json:"statusType"`
 }
 
 type PositionPayload struct {

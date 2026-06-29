@@ -8,6 +8,9 @@ import (
 
 const ItemsPerPage = 100
 
+// EmployeesMaxPageSize is the max limit accepted by the coreHr /employees endpoint.
+const EmployeesMaxPageSize = 20
+
 type ReqOpt func(reqURL *url.URL)
 
 type PageOptions struct {
