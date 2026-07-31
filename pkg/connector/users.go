@@ -58,12 +58,7 @@ func (o *userBuilder) Entitlements(_ context.Context, resource *v2.Resource, _ *
 // Position membership is granted here on the userBuilder: the employee list embeds positionCode
 // into each user resource, so we read it back from the synced resource instead of re-fetching.
 func (o *userBuilder) Grants(_ context.Context, userResource *v2.Resource, _ *pagination.Token) ([]*v2.Grant, string, annotations.Annotations, error) {
-	userTrait, err := resource.GetUserTrait(userResource)
-	if err != nil {
-		return nil, "", nil, fmt.Errorf("failed to read user trait for %s: %w", userResource.Id.Resource, err)
-	}
-
-	positionCode, ok := resource.GetProfileStringValue(userTrait.GetProfile(), "position_code")
+	positionCode, ok := resource.GetProfileStringValue(resource.GetProfile(userResource), "position_code")
 	if !ok || positionCode == "" {
 		return nil, "", nil, nil
 	}
@@ -103,8 +98,6 @@ func parseUserToResource(user *client.User, parentResourceID *v2.ResourceId) (*v
 	userTraitOptions := []resource.UserTraitOption{
 		resource.WithEmail(user.Info.Email, true),
 		resource.WithUserLogin(user.Info.Email),
-		resource.WithStatus(status),
-		resource.WithUserProfile(profile),
 	}
 
 	userResource, err := resource.NewUserResource(
@@ -113,6 +106,8 @@ func parseUserToResource(user *client.User, parentResourceID *v2.ResourceId) (*v
 		user.ID,
 		userTraitOptions,
 		resource.WithParentResourceID(parentResourceID),
+		resource.WithResourceProfile(profile),
+		resource.WithResourceStatus(v2.Status_ResourceStatus(status), ""),
 	)
 	if err != nil {
 		return nil, err
