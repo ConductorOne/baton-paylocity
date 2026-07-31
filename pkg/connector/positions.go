@@ -80,9 +80,7 @@ func parsePositionToResource(position *client.Position, parentResourceID *v2.Res
 		"closed_date":    position.ClosedDate.Format(time.RFC3339),
 	}
 
-	positionTraitOptions := []resource.RoleTraitOption{
-		resource.WithRoleProfile(profile),
-	}
+	positionTraitOptions := []resource.RoleTraitOption{}
 
 	positionResource, err := resource.NewRoleResource(
 		position.Title,
@@ -90,6 +88,7 @@ func parsePositionToResource(position *client.Position, parentResourceID *v2.Res
 		position.Code,
 		positionTraitOptions,
 		resource.WithParentResourceID(parentResourceID),
+		resource.WithResourceProfile(profile),
 	)
 	if err != nil {
 		return nil, err
