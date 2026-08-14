@@ -6,5 +6,5 @@ import (
 )
 
 func main() {
-	config.Generate("paylocity", cfg.Config)
+	config.Generate("paylocity", cfg.Configuration)
 }

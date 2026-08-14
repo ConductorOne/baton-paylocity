@@ -9,12 +9,11 @@ import (
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 	"github.com/conductorone/baton-sdk/pkg/annotations"
 	"github.com/conductorone/baton-sdk/pkg/connectorbuilder"
-	"github.com/conductorone/baton-sdk/pkg/pagination"
 	"github.com/conductorone/baton-sdk/pkg/types/grant"
 	"github.com/conductorone/baton-sdk/pkg/types/resource"
 )
 
-var _ connectorbuilder.ResourceSyncer = (*userBuilder)(nil)
+var _ connectorbuilder.ResourceSyncerV2 = (*userBuilder)(nil)
 
 type userBuilder struct {
 	client client.ClientService
@@ -26,8 +25,8 @@ func (o *userBuilder) ResourceType(ctx context.Context) *v2.ResourceType {
 
 // List returns all the users from the database as resource objects.
 // Users include a UserTrait because they are the 'shape' of a standard user.
-func (o *userBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId, pToken *pagination.Token) ([]*v2.Resource, string, annotations.Annotations, error) {
-	options := getPageOptions(pToken, client.ItemsPerPage)
+func (o *userBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId, pToken resource.SyncOpAttrs) ([]*v2.Resource, *resource.SyncOpResults, error) {
+	options := getPageOptions(&pToken.PageToken, client.ItemsPerPage)
 
 	outputAnnotations := annotations.New()
 	employees, nextPageToken, rateLimitDesc, err := o.client.ListEmployees(ctx, options)
@@ -35,32 +34,32 @@ func (o *userBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId,
 		outputAnnotations.WithRateLimiting(rateLimitDesc)
 	}
 	if err != nil {
-		return nil, "", outputAnnotations, fmt.Errorf("listing employees failed: %w", err)
+		return nil, &resource.SyncOpResults{Annotations: outputAnnotations}, fmt.Errorf("listing employees failed: %w", err)
 	}
 
 	var resources []*v2.Resource
 	for _, employee := range employees {
 		userResource, err := parseUserToResource(employee, parentResourceID)
 		if err != nil {
-			return nil, "", outputAnnotations, err
+			return nil, &resource.SyncOpResults{Annotations: outputAnnotations}, err
 		}
 		resources = append(resources, userResource)
 	}
 
-	return resources, nextPageToken, outputAnnotations, nil
+	return resources, &resource.SyncOpResults{NextPageToken: nextPageToken, Annotations: outputAnnotations}, nil
 }
 
 // Entitlements always returns an empty slice for users.
-func (o *userBuilder) Entitlements(_ context.Context, resource *v2.Resource, _ *pagination.Token) ([]*v2.Entitlement, string, annotations.Annotations, error) {
-	return nil, "", nil, nil
+func (o *userBuilder) Entitlements(_ context.Context, res *v2.Resource, _ resource.SyncOpAttrs) ([]*v2.Entitlement, *resource.SyncOpResults, error) {
+	return nil, nil, nil
 }
 
 // Position membership is granted here on the userBuilder: the employee list embeds positionCode
 // into each user resource, so we read it back from the synced resource instead of re-fetching.
-func (o *userBuilder) Grants(_ context.Context, userResource *v2.Resource, _ *pagination.Token) ([]*v2.Grant, string, annotations.Annotations, error) {
+func (o *userBuilder) Grants(_ context.Context, userResource *v2.Resource, _ resource.SyncOpAttrs) ([]*v2.Grant, *resource.SyncOpResults, error) {
 	positionCode, ok := resource.GetProfileStringValue(resource.GetProfile(userResource), "position_code")
 	if !ok || positionCode == "" {
-		return nil, "", nil, nil
+		return nil, nil, nil
 	}
 
 	positionResource := &v2.Resource{
@@ -71,7 +70,7 @@ func (o *userBuilder) Grants(_ context.Context, userResource *v2.Resource, _ *pa
 	}
 
 	grants := []*v2.Grant{grant.NewGrant(positionResource, PermissionMember, userResource.Id)}
-	return grants, "", nil, nil
+	return grants, &resource.SyncOpResults{}, nil
 }
 
 func parseUserToResource(user *client.User, parentResourceID *v2.ResourceId) (*v2.Resource, error) {
