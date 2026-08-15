@@ -10,6 +10,7 @@ import (
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 	"github.com/conductorone/baton-sdk/pkg/pagination"
 	"github.com/conductorone/baton-sdk/pkg/test"
+	"github.com/conductorone/baton-sdk/pkg/types/resource"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -30,7 +31,8 @@ func TestPositionList(t *testing.T) {
 			return []*client.Position{mockPosition1}, "", nil, nil
 		}
 
-		resources, nextPageToken, annotations, err := positionBuilder.List(ctx, nil, &pagination.Token{})
+		resources, syncResults, err := positionBuilder.List(ctx, nil, resource.SyncOpAttrs{})
+		nextPageToken, annotations := syncResults.NextPageToken, syncResults.Annotations
 
 		require.NoError(t, err)
 		require.Len(t, resources, 1)
@@ -55,12 +57,14 @@ func TestPositionList(t *testing.T) {
 			return nil, "", nil, fmt.Errorf("unexpected page token (offset)")
 		}
 
-		resources1, nextPageToken1, _, err1 := positionBuilder.List(ctx, nil, &pagination.Token{Size: 50})
+		resources1, syncResults, err1 := positionBuilder.List(ctx, nil, resource.SyncOpAttrs{PageToken: pagination.Token{Size: 50}})
+		nextPageToken1 := syncResults.NextPageToken
 		require.NoError(t, err1)
 		require.Len(t, resources1, 1)
 		require.Equal(t, "50", nextPageToken1)
 
-		resources2, nextPageToken2, _, err2 := positionBuilder.List(ctx, nil, &pagination.Token{Token: nextPageToken1, Size: 50})
+		resources2, syncResults, err2 := positionBuilder.List(ctx, nil, resource.SyncOpAttrs{PageToken: pagination.Token{Token: nextPageToken1, Size: 50}})
+		nextPageToken2 := syncResults.NextPageToken
 		require.NoError(t, err2)
 		require.Len(t, resources2, 1)
 		require.Empty(t, nextPageToken2)
@@ -75,7 +79,8 @@ func TestPositionList(t *testing.T) {
 			return nil, "", &v2.RateLimitDescription{ResetAt: timestamppb.New(expectedReset)}, fmt.Errorf("rate limited")
 		}
 
-		_, _, annotations, err := positionBuilder.List(ctx, nil, &pagination.Token{})
+		_, syncResults, err := positionBuilder.List(ctx, nil, resource.SyncOpAttrs{})
+		annotations := syncResults.Annotations
 
 		require.Error(t, err)
 		require.NotNil(t, annotations)
@@ -92,7 +97,7 @@ func TestPositionEntitlements(t *testing.T) {
 			DisplayName: "Software Developer",
 		}
 
-		entitlements, _, _, err := positionBuilder.Entitlements(ctx, positionResource, &pagination.Token{})
+		entitlements, _, err := positionBuilder.Entitlements(ctx, positionResource, resource.SyncOpAttrs{})
 
 		require.NoError(t, err)
 		require.Len(t, entitlements, 1)

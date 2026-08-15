@@ -51,7 +51,7 @@ var (
 )
 
 //go:generate go run -tags=generate ./gen
-var Config = field.NewConfiguration(
+var Configuration = field.NewConfiguration(
 	ConfigurationFields,
 	field.WithConstraints(FieldRelationships...),
 	field.WithConnectorDisplayName("Paylocity"),

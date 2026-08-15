@@ -10,6 +10,7 @@ import (
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 	"github.com/conductorone/baton-sdk/pkg/pagination"
 	"github.com/conductorone/baton-sdk/pkg/test"
+	"github.com/conductorone/baton-sdk/pkg/types/resource"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -36,7 +37,8 @@ func TestUserList(t *testing.T) {
 			return []*client.User{mockUser1}, "", nil, nil
 		}
 
-		resources, nextPageToken, annotations, err := userBuilder.List(ctx, nil, &pagination.Token{})
+		resources, syncResults, err := userBuilder.List(ctx, nil, resource.SyncOpAttrs{})
+		nextPageToken, annotations := syncResults.NextPageToken, syncResults.Annotations
 
 		require.NoError(t, err)
 		require.Len(t, resources, 1)
@@ -62,12 +64,14 @@ func TestUserList(t *testing.T) {
 			return nil, "", nil, fmt.Errorf("unexpected page token")
 		}
 
-		resources1, nextPageToken1, _, err1 := userBuilder.List(ctx, nil, &pagination.Token{})
+		resources1, syncResults, err1 := userBuilder.List(ctx, nil, resource.SyncOpAttrs{})
+		nextPageToken1 := syncResults.NextPageToken
 		require.NoError(t, err1)
 		require.Len(t, resources1, 1)
 		require.Equal(t, "token_pagina_2", nextPageToken1)
 
-		resources2, nextPageToken2, _, err2 := userBuilder.List(ctx, nil, &pagination.Token{Token: nextPageToken1})
+		resources2, syncResults, err2 := userBuilder.List(ctx, nil, resource.SyncOpAttrs{PageToken: pagination.Token{Token: nextPageToken1}})
+		nextPageToken2 := syncResults.NextPageToken
 		require.NoError(t, err2)
 		require.Len(t, resources2, 1)
 		require.Empty(t, nextPageToken2)
@@ -85,7 +89,8 @@ func TestUserList(t *testing.T) {
 			return nil, "", &v2.RateLimitDescription{ResetAt: timestamppb.New(expectedReset)}, fmt.Errorf("rate limited")
 		}
 
-		_, _, annotations, err := userBuilder.List(ctx, nil, &pagination.Token{})
+		_, syncResults, err := userBuilder.List(ctx, nil, resource.SyncOpAttrs{})
+		annotations := syncResults.Annotations
 
 		require.Error(t, err)
 		require.NotNil(t, annotations)
@@ -110,7 +115,7 @@ func TestUserGrants(t *testing.T) {
 		}, nil)
 		require.NoError(t, err)
 
-		grants, _, _, err := userBuilder.Grants(ctx, userResource, &pagination.Token{})
+		grants, _, err := userBuilder.Grants(ctx, userResource, resource.SyncOpAttrs{})
 
 		require.NoError(t, err)
 		require.Len(t, grants, 1)
@@ -126,7 +131,7 @@ func TestUserGrants(t *testing.T) {
 		}, nil)
 		require.NoError(t, err)
 
-		grants, _, _, err := userBuilder.Grants(ctx, userResource, &pagination.Token{})
+		grants, _, err := userBuilder.Grants(ctx, userResource, resource.SyncOpAttrs{})
 
 		require.NoError(t, err)
 		require.Empty(t, grants)
